@@ -41,7 +41,7 @@ _____________________________________________
 BUT DU PROJET :
 Construire un systeme de RAG qui repond a des questions sur un codebase.
 
-Idee centrale : plutot que de reentrainer un modele pour lui donner de nouvelles connaissances, on lui donne acces a une source externe de documents et on va chercher les passages pertinents au moment de repondre.
+Idee centrale : plutot que de reentrainer un modele pour lui donner de nouvelles connaissances, on lui donne acces a une source externe de documents (vLLM) et on va chercher les passages pertinents au moment de repondre.
 
 4 etapes de RAG :
 1- Indexation : lire les fichiers et les decouper en petits morceaux = chunks avec lesquels construire un index consultable rapidement
@@ -116,3 +116,10 @@ Pour chunker ya les paquets chonki ou st
 - ensuite on prompte le llm en mode t'es un codeur etc
 
 installer transformers pour mettre Qwen en 2/3 lignes
+
+
+PLAN :
+- ajouter les paquets monkie et transformers, pydantic et firetorch?
+- se renseigner sur BM25
+- bien comprendre ce qu'est un RAG
+- comprendre CLI
