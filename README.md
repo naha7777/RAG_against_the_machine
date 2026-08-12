@@ -114,3 +114,5 @@ Faut aussi faire gaffe a couper au bon endroit et a avoir le contexte genre over
 Pour chunker ya les paquets chonki ou st
 - une fois qu'on a chunke, on utilise BM25 qui degage les mots nuls du genre 'a', 'de', 'un' et qui classe selon l'occurence du mot pour savoir l'importance, il met au dessus les mots qui reviennent le plus souvent
 - ensuite on prompte le llm en mode t'es un codeur etc
+
+installer transformers pour mettre Qwen en 2/3 lignes
