@@ -89,7 +89,7 @@ Exigences techniques generales :
 
 Structure repo :
 ```bash
-src/                  → ton implémentation
+src/                  → implémentation
 pyproject.toml, uv.lock
 README.md
 data/raw/             → corpus source (vLLM)
