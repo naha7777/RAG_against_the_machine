@@ -31,6 +31,7 @@ Provide clear examples of running your system
 ## Resources
 
 ### Documentation
+[chonkie](https://pypi.org/project/chonkie/)
 
 ### AI usage
 
@@ -53,7 +54,7 @@ Chunking = decoupage : deux strategies obligatoires car le code et le texte ne s
 - chunking markdown/texte
 - taille max de 2000 caracteres par chunk (configurable via --max_chunk_size, default 2000)
 
-chonki ou st
+chonkie ou st
 
 Retrieval lexical : implementer au moins une methode parmi :
 - TF-IDF (Term Frequency-Inverse Document Frequency) : pondere les mots selon leur frequence dans le document vs dans le corpus
