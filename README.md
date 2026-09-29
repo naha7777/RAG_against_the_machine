@@ -32,6 +32,10 @@ Provide clear examples of running your system
 
 ### Documentation
 [chonkie](https://pypi.org/project/chonkie/)
+[IA](https://www.youtube.com/watch?v=kISRpDfbS4Y&t=328s)
+[RAG](https://www.youtube.com/watch?v=qUHEUXwr_J8&t=371s)
+[Python Fire](https://davidbieber.com/post/2017-03-06-introducing-python-fire/)
+[BM25](https://www.veonum.com/rag-hybride/)
 
 ### AI usage
 
@@ -41,12 +45,12 @@ _____________________________________________
 BUT DU PROJET :
 Construire un systeme de RAG qui repond a des questions sur un codebase.
 
-Idee centrale : plutot que de reentrainer un modele pour lui donner de nouvelles connaissances, on lui donne acces a une source externe de documents (vLLM) et on va chercher les passages pertinents au moment de repondre.
+Idee centrale : plutot que de réentrainer un modele pour lui donner de nouvelles connaissances, on lui donne acces a une source externe de documents (vLLM) et on va chercher les passages pertinents au moment de répondre.
 
-4 etapes de RAG :
+4 étapes de RAG :
 1- Indexation : lire les fichiers et les decouper en petits morceaux = chunks avec lesquels construire un index consultable rapidement
 2- Recuperation : face a une question, chercher dans l'index les k chunks les plus pertinents
-3- Augmentation : filter les k chunks et les inserer dans le contexte du modele (respect de la limite de token)
+3- Augmentation : filtrer les k chunks et les inserer dans le contexte du modele (respect de la limite de token)
 4- Generation : le modele Qwen3 lit ce contexte et redige une reponse
 
 Chunking = decoupage : deux strategies obligatoires car le code et le texte ne se decoupent pas pareil :
@@ -54,11 +58,7 @@ Chunking = decoupage : deux strategies obligatoires car le code et le texte ne s
 - chunking markdown/texte
 - taille max de 2000 caracteres par chunk (configurable via --max_chunk_size, default 2000)
 
-chonkie ou st
-
-Retrieval lexical : implementer au moins une methode parmi :
-- TF-IDF (Term Frequency-Inverse Document Frequency) : pondere les mots selon leur frequence dans le document vs dans le corpus
-- BM25 : variante plus robuste de TF-IDF, standard en recherche d'information
+BM25 : variante plus robuste de TF-IDF, standard en recherche d'information
 
 Ce sont des methodes de recherche par mots-clefs, pas semantique.
 
@@ -99,27 +99,33 @@ data/datasets/{UnansweredQuestions,AnsweredQuestions}/
 data/output/search_results/<scope>/
 data/output/search_results_and_answer/<scope>/
 ```
-Ces chemins doivent tous etre configurables en CLI, jamais codes en dur, car le correcteur lance une pipeline automatisee : index -> search_dataset -> moulinette evaluate_student_search_results
+Ces chemins doivent tous etre configurables en CLI, jamais codés en dur, car le correcteur lance une pipeline automatisée : index -> search_dataset -> moulinette evaluate_student_search_results
 
 Points de vigilance particuliers :
-- le fil_path doit matcher EXACTEMENT le chemin du corpus (ex: data/raw/vllm-0.10.1/docs/features/lora.md) -> un resultat dans le mauvais fichier ne compte jamais
+- le file_path doit matcher EXACTEMENT le chemin du corpus (ex: data/raw/vllm-0.10.1/docs/features/lora.md) -> un resultat dans le mauvais fichier ne compte jamais
 - ne jamais depasser 2000 caracteres par chunk
 - la moulinette ne doit jamais etre appelee/importee dans le code, la commande evaluate du CLI sert seulement au debuggage
-- modeles pydantic fournis sont une base extensible, possibilite d'ajouter dse modeles etc
+- modeles pydantic fournis sont une base extensible, possibilite d'ajouter des modeles etc
 
 EN GROS
 
 - On a plein de fichiers genre des .py, des .md etc qu'il faut chunker, chaque chunk fait 2000 caracteres max, donc chunker en paragraphes pour les .md peut etre, chunker en fonctions pour les .c, .py etc et ignorer les autres fichiers jcrois (on chunk differemment un python .py qu'un mardown .md ou qu'un .txt)
 Faut aussi faire gaffe a couper au bon endroit et a avoir le contexte genre overlap un peu devant et derriere
-Pour chunker ya les paquets chonki ou st
+Pour chunker ya les paquets chonkie
 - une fois qu'on a chunke, on utilise BM25 qui degage les mots nuls du genre 'a', 'de', 'un' et qui classe selon l'occurence du mot pour savoir l'importance, il met au dessus les mots qui reviennent le plus souvent
 - ensuite on prompte le llm en mode t'es un codeur etc
 
 installer transformers pour mettre Qwen en 2/3 lignes
 
+--------------------------------------------------------------------------------
 
-PLAN :
-- ajouter les paquets monkie et transformers, pydantic et firetorch?
-- se renseigner sur BM25
-- bien comprendre ce qu'est un RAG
-- comprendre CLI
+Gérer dossiers/fichiers absent, pas les permissions
+
+1- CLI :
+Se renseigner sur ce qu'on doit faire précisément en CLI car il faut surement le faire avant de faire le chunking
+
+2- CHUNKING :
+- Créer une boucle qui parcourt les dossiers
+- si le fichier se termine par .md on applique RecursiveChunker.from_recipe("markdown")
+- si le fichier se termine par .py ou .c on applique le CodeChunker(language=" ")
+- rassembler tous les chunks dans une seule grande base de donnée (liste python ? / fichier ?) qu'on passe à bm25 pour créer l'index de recherche
