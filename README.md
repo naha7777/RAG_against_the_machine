@@ -36,6 +36,8 @@ Provide clear examples of running your system
 [RAG](https://www.youtube.com/watch?v=qUHEUXwr_J8&t=371s)
 [Python Fire](https://davidbieber.com/post/2017-03-06-introducing-python-fire/)
 [BM25](https://www.veonum.com/rag-hybride/)
+[recall@k](https://milvus.io/ai-quick-reference/what-is-recallatk)
+[zipfile](https://www.tresfacile.net/le-module-python-zipfile-des-archives-zip/)
 
 ### AI usage
 
@@ -48,10 +50,10 @@ Construire un systeme de RAG qui repond a des questions sur un codebase.
 Idee centrale : plutot que de réentrainer un modele pour lui donner de nouvelles connaissances, on lui donne acces a une source externe de documents (vLLM) et on va chercher les passages pertinents au moment de répondre.
 
 4 étapes de RAG :
-1- Indexation : lire les fichiers et les decouper en petits morceaux = chunks avec lesquels construire un index consultable rapidement
-2- Recuperation : face a une question, chercher dans l'index les k chunks les plus pertinents
-3- Augmentation : filtrer les k chunks et les inserer dans le contexte du modele (respect de la limite de token)
-4- Generation : le modele Qwen3 lit ce contexte et redige une reponse
+1- Indexation / Indexing : lire les fichiers et les decouper en petits morceaux = chunks avec lesquels construire un index consultable rapidement
+2- Recuperation / Retrieving : face a une question, chercher dans l'index les k chunks les plus pertinents
+3- Augmentation / Augmenting : filtrer les k chunks et les inserer dans le contexte du modele (respect de la limite de token)
+4- Generation / Generating : le modele Qwen3 lit ce contexte et redige une reponse
 
 Chunking = decoupage : deux strategies obligatoires car le code et le texte ne se decoupent pas pareil :
 - chunking python
@@ -84,7 +86,14 @@ Exigences techniques generales :
 - python3.10, flake8, mypy, docstrings
 - gestion propre des erreurs (try except) - aucun crash
 - uv comme gestionnaire de paquets
-- CLI avec Python Fire : commandes index, search, search_dataset, answer, answer_dataset, evaluate
+- CLI avec Python Fire : chaque commande est écrite de cette manière : uv run python
+-m src <command> [options]:
+	- index –max_chunk_size <int> = chunk tout data/raw/ et crée un index dans data/processed
+	- search <query> –k <int> = retourne les meilleurs chunks pour une question
+	- search_dataset –dataset_path <path> –k <int> –save_directory <dir> = lance la recherche dans un jeu de données et écrit un JSON StudentSearchResults
+	- answer <query> –k <int> = répond a une question en utilisant le retrieved context
+	- answer_dataset –student_search_results_path <path> –save_directory <dir> = génère les réponses pour un jeu de données en produisant un JSON StudentSearchResultsAndAnswer
+	- evaluate –student_search_results_path <path> –dataset_path <path> = cela rapporte mon propre recall@k par rapport à un jeu de données de référence pour mes propres tests
 - tqdm pour les barres de progression
 - un makefile avec les regles install, run, debug, clean, lint, lint-strict
 
@@ -118,14 +127,67 @@ Pour chunker ya les paquets chonkie
 installer transformers pour mettre Qwen en 2/3 lignes
 
 --------------------------------------------------------------------------------
+uv sync
 
 Gérer dossiers/fichiers absent, pas les permissions
 
-1- CLI :
-Se renseigner sur ce qu'on doit faire précisément en CLI car il faut surement le faire avant de faire le chunking
+INDEX REPOSITORY :
+- extraire le vllm-0.10.1.zip si il est présent dans data/raw/ (si non le telecharger et le placer dnas le dossier)
+- CHUNKING :
+	- Créer une boucle qui parcourt les dossiers
+	- si le fichier se termine par .md on applique RecursiveChunker.from_recipe("markdown")
+	- si le fichier se termine par .py ou .c on applique le CodeChunker(language=" ")
+	- rassembler tous les chunks dans une seule grande base de donnée (liste python ? / fichier ?) qu'on passe à bm25 pour créer l'index de recherche
+- BM25 index : créer l'index et le rendre persistant, ne se recrée pas a chaque fois
 
-2- CHUNKING :
-- Créer une boucle qui parcourt les dossiers
-- si le fichier se termine par .md on applique RecursiveChunker.from_recipe("markdown")
-- si le fichier se termine par .py ou .c on applique le CodeChunker(language=" ")
-- rassembler tous les chunks dans une seule grande base de donnée (liste python ? / fichier ?) qu'on passe à bm25 pour créer l'index de recherche
+
+Quand on pose une question :
+- on check si ya l'index
+- si non on le crée en moins de 5 min (chunk + bm25)
+- top-k chunk (file_path + character indices)
+- qwen
+- réponse dans un json
+
+4 commandes :
+- index the corpus ONCE :
+```bash
+uv run python -m src index --max_chunk_size 2000
+Ingestion complete! Indices saved under data/processed/
+```
+- search a dataset :
+```bash
+uv run python -m src search_dataset
+--dataset_path data/datasets/UnansweredQuestions/dataset_docs_public.json
+--k 10
+--save_directory data/output/search_results/UnansweredQuestions
+Saved student_search_results to data/output/search_results/UnansweredQuestions/dataset_docs_public.json
+```
+
+- score with the moulinette :
+```bash
+./moulinette evaluate_student_search_results
+data/output/search_results/UnansweredQuestions/dataset_docs_public.json
+data/datasets/AnsweredQuestions/dataset_docs_public.json
+--k 10 --max_context_length 2000
+Student data is valid: True
+Evaluation Results
+========================================
+Recall@1: 0.450 Recall@3: 0.590 Recall@5: 0.650 Recall@10: 0.720
+```
+
+- générer une réponse :
+```bash
+uv run python -m src answer_dataset
+--student_search_results_path data/output/search_results/UnansweredQuestions/dataset_docs_public.json
+--save_directory data/output/search_results_and_answer/UnansweredQuestions
+Loaded 100 questions ... Processed 100 of 100 questions
+Saved student_search_results_and_answer to .../UnansweredQuestions/dataset_docs_public.json
+```
+
+proteger si on lance sans uv / sans venv
+
+meme tokenisation a l'index et search :
+tokens = bm25s.tokenize(chunks_text ou query, stopwords="en", stemmer=stemmer)
+
+question → BM25 → "meilleurs chunks : 50, 12, 7..." → récupérer leur texte → LLM → réponse
+BM25 ne rédige rien : il classe les chunks. Le LLM reçoit ensuite le texte de ces chunks comme contexte, avec la question.

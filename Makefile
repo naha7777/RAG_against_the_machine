@@ -12,8 +12,7 @@ INSTALL_UV		=	curl -LsSf https://astral.sh/uv/install.sh | sh
 CHECK_UV		=	command -v uv
 UV_WARN			=	--link-mode copy
 UV_SKIP_WHEEL	=	UV_SKIP_WHEEL_FILENAME_CHECK=1
-LINT_TESTER		=	src \
-					main.py \
+LINT_TESTER		=	src
 
 # ===================
 # =		RULES		=
@@ -32,11 +31,11 @@ install:
 			$(UV_SKIP_WHEEL) uv sync $(UV_WARN)
 
 run:		install
-			$(UV_PYTHON) main.py
+			$(UV_PYTHON) src
 
 debug:		install
 			@echo "$(BGREEN)Running the main script in debug mode...$(RESET)"
-			$(PDB) main.py
+			$(PDB) src
 
 clean:
 			@clear

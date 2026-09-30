@@ -1,0 +1,31 @@
+import fire
+import sys
+from rich.console import Console
+
+try:
+    from src.RAGEngine import RAGEngine
+    from src.utils.display import print_error, print_success
+except ModuleNotFoundError:
+    Console(stderr=True).print(
+        "\n[bold red]ERROR:[/] Please run with 'uv run python -m src'\n")
+    sys.exit(1)
+
+
+def main() -> int:
+    try:
+        print_success("RAG joined the terminal")
+        fire.Fire(RAGEngine)
+        return 0
+    except Exception as e:
+        print_error(e)
+        return 1
+    finally:
+        print_success("RAG left the terminal")
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt as e:
+        print_error(e)
+        sys.exit(130)
