@@ -43,30 +43,7 @@ Provide clear examples of running your system
 
 _____________________________________________
 
-
-BUT DU PROJET :
-Construire un systeme de RAG qui repond a des questions sur un codebase.
-
-Idee centrale : plutot que de réentrainer un modele pour lui donner de nouvelles connaissances, on lui donne acces a une source externe de documents (vLLM) et on va chercher les passages pertinents au moment de répondre.
-
-4 étapes de RAG :
-1- Indexation / Indexing : lire les fichiers et les decouper en petits morceaux = chunks avec lesquels construire un index consultable rapidement
-2- Recuperation / Retrieving : face a une question, chercher dans l'index les k chunks les plus pertinents
-3- Augmentation / Augmenting : filtrer les k chunks et les inserer dans le contexte du modele (respect de la limite de token)
-4- Generation / Generating : le modele Qwen3 lit ce contexte et redige une reponse
-
-Chunking = decoupage : deux strategies obligatoires car le code et le texte ne se decoupent pas pareil :
-- chunking python
-- chunking markdown/texte
-- taille max de 2000 caracteres par chunk (configurable via --max_chunk_size, default 2000)
-
-BM25 : variante plus robuste de TF-IDF, standard en recherche d'information
-
-Ce sont des methodes de recherche par mots-clefs, pas semantique.
-
-Generation : utiliser Qwen3, un petit modele local, pour produire une reponse structuree en JSON a partir du contexte recupere.
-
-Modeles de donnees (Pydantic) : le sujet impose des classes precises pour valider les echanges entre etapes :
+Modèles de données (Pydantic) : le sujet impose des classes précises pour valider les échanges entre étapes :
 - `MinimalSource` (file_path + indices de caractères)
 - `UnansweredQuestion`/`AnsweredQuestion`
 - `RagDataset`
@@ -74,20 +51,19 @@ Modeles de donnees (Pydantic) : le sujet impose des classes precises pour valide
 - `StudentSearchResults`/`StudentSearchResultAndAnswer` (format de sortie attendu)
 
 Evaluation : recall@k
-- pour chaque question, on regarde la proportion des sources correctes retrouvees parmi les k premiers resultats
-- une source est 'trouvee' si le file_path est exactement identique et si l'intervalle de caracteres a un IoU (Intersection over Union) >= 0.05 avec la reference (seuil bas, donc pas besoin de matcher exactement les indices)
-- seuils a atteindre : >= 80% recall@5 sur les questions "docs", >=50% recall@5 sur les questions "code"
+- pour chaque question, on regarde la proportion des sources correctes retrouvées parmi les k premiers resultats
+- une source est 'trouvée' si le file_path est exactement identique et si l'intervalle de caractères a un IoU (Intersection over Union) >= 0.05 avec la référence (seuil bas, donc pas besoin de matcher exactement les indices)
+- seuils à atteindre : >= 80% recall@5 sur les questions "docs", >=50% recall@5 sur les questions "code"
 
 Contraintes de perf :
 - indexation : max 5 minutes pour tout le corpus
 - recherche : max 90 secondes pour 200 questions
 
-Exigences techniques generales :
+Exigences techniques générales :
 - python3.10, flake8, mypy, docstrings
 - gestion propre des erreurs (try except) - aucun crash
 - uv comme gestionnaire de paquets
-- CLI avec Python Fire : chaque commande est écrite de cette manière : uv run python
--m src <command> [options]:
+- CLI avec Python Fire : chaque commande est écrite de cette manière : uv run python -m src <command> [options]:
 	- index –max_chunk_size <int> = chunk tout data/raw/ et crée un index dans data/processed
 	- search <query> –k <int> = retourne les meilleurs chunks pour une question
 	- search_dataset –dataset_path <path> –k <int> –save_directory <dir> = lance la recherche dans un jeu de données et écrit un JSON StudentSearchResults
@@ -108,7 +84,7 @@ data/datasets/{UnansweredQuestions,AnsweredQuestions}/
 data/output/search_results/<scope>/
 data/output/search_results_and_answer/<scope>/
 ```
-Ces chemins doivent tous etre configurables en CLI, jamais codés en dur, car le correcteur lance une pipeline automatisée : index -> search_dataset -> moulinette evaluate_student_search_results
+Ces chemins doivent tous être configurables en CLI, jamais codés en dur, car le correcteur lance une pipeline automatisée : index -> search_dataset -> moulinette evaluate_student_search_results
 
 Points de vigilance particuliers :
 - le file_path doit matcher EXACTEMENT le chemin du corpus (ex: data/raw/vllm-0.10.1/docs/features/lora.md) -> un resultat dans le mauvais fichier ne compte jamais
@@ -118,9 +94,9 @@ Points de vigilance particuliers :
 
 EN GROS
 
-- On a plein de fichiers genre des .py, des .md etc qu'il faut chunker, chaque chunk fait 2000 caracteres max, donc chunker en paragraphes pour les .md peut etre, chunker en fonctions pour les .c, .py etc et ignorer les autres fichiers jcrois (on chunk differemment un python .py qu'un mardown .md ou qu'un .txt)
-Faut aussi faire gaffe a couper au bon endroit et a avoir le contexte genre overlap un peu devant et derriere
-Pour chunker ya les paquets chonkie
+- On a plein de fichiers genre des .py, des .md etc qu'il faut chunker, chaque chunk fait 2000 caracteres max, on chunk differemment un python .py qu'un mardown .md ou qu'un .txt.
+Faut aussi faire gaffe à couper au bon endroit et à avoir le contexte genre overlap un peu devant et derriere
+Pour chunker ya le paquet chonkie
 - une fois qu'on a chunke, on utilise BM25 qui degage les mots nuls du genre 'a', 'de', 'un' et qui classe selon l'occurence du mot pour savoir l'importance, il met au dessus les mots qui reviennent le plus souvent
 - ensuite on prompte le llm en mode t'es un codeur etc
 
