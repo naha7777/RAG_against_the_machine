@@ -167,3 +167,7 @@ tokens = bm25s.tokenize(chunks_text ou query, stopwords="en", stemmer=stemmer)
 
 question → BM25 → "meilleurs chunks : 50, 12, 7..." → récupérer leur texte → LLM → réponse
 BM25 ne rédige rien : il classe les chunks. Le LLM reçoit ensuite le texte de ces chunks comme contexte, avec la question.
+
+Questions :
+- c'est quoi la différence entre search et search dataset ? Je crois que j'ai pas compris toutes les consignes
+- est-ce que je dois faire dès le début evaluate ? ça à l'air aidant et de foutre la merde si je le fais à la fin alors que j'ai pas le code bien relié pour qu'il reçoive bien toutes les infos (je parle des modèles de données)
