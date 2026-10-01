@@ -1,10 +1,9 @@
-class RAGEngine():
+from src.indexer.index import indexer
+
+
+class RAGEngine:
 
     def index(self, max_chunk_size: int = 2000) -> None:
-        # chunk tout data/raw/ et crée un index dans data/processed
-        # etape 1 : check que le max_chunk_size est valide
-        # etape 2 : appeler une fonction qui chunk avec chonkie en donnant en
-        # parametres la max_chunk_size
         if isinstance(max_chunk_size, bool):
             raise TypeError("max_chunk_size must be an integer")
         try:
@@ -15,6 +14,8 @@ class RAGEngine():
             raise ValueError("max_chunk_size must be positive")
         if max_chunk_size > 2000:
             raise ValueError("max_chunk_size can't be more than 2000")
+
+        indexer(max_chunk_size)
 
     def search(self, query: str = "", k: int = 10,
                verbose: bool = True) -> None:

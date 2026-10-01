@@ -31,13 +31,16 @@ Provide clear examples of running your system
 ## Resources
 
 ### Documentation
-[chonkie](https://pypi.org/project/chonkie/)
-[IA](https://www.youtube.com/watch?v=kISRpDfbS4Y&t=328s)
-[RAG](https://www.youtube.com/watch?v=qUHEUXwr_J8&t=371s)
-[Python Fire](https://davidbieber.com/post/2017-03-06-introducing-python-fire/)
-[BM25](https://www.veonum.com/rag-hybride/)
-[recall@k](https://milvus.io/ai-quick-reference/what-is-recallatk)
-[zipfile](https://www.tresfacile.net/le-module-python-zipfile-des-archives-zip/)
+[chonkie](https://pypi.org/project/chonkie/)\
+[chonkie](https://www.reddit.com/r/Rag/comments/1gnxx7i/introducing_chonkie_the_tinybutmighty_rag/?tl=fr)\
+[IA](https://www.youtube.com/watch?v=kISRpDfbS4Y&t=328s)\
+[RAG](https://www.youtube.com/watch?v=qUHEUXwr_J8&t=371s)\
+[Python Fire](https://davidbieber.com/post/2017-03-06-introducing-python-fire/)\
+[BM25](https://www.veonum.com/rag-hybride/)\
+[recall@k](https://milvus.io/ai-quick-reference/what-is-recallatk)\
+[zipfile](https://www.tresfacile.net/le-module-python-zipfile-des-archives-zip/)\
+[pathlib](https://www.datacamp.com/fr/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation)\
+[tqdm](https://www.datacamp.com/fr/tutorial/tqdm-python)
 
 ### AI usage
 
@@ -169,5 +172,56 @@ question → BM25 → "meilleurs chunks : 50, 12, 7..." → récupérer leur tex
 BM25 ne rédige rien : il classe les chunks. Le LLM reçoit ensuite le texte de ces chunks comme contexte, avec la question.
 
 Questions :
-- c'est quoi la différence entre search et search dataset ? Je crois que j'ai pas compris toutes les consignes
-- est-ce que je dois faire dès le début evaluate ? ça à l'air aidant et de foutre la merde si je le fais à la fin alors que j'ai pas le code bien relié pour qu'il reçoive bien toutes les infos (je parle des modèles de données)
+- se renseigner sur pydantic et uuid
+
+
+BM25 me donne l'index du chunk dans ma liste, donc si c'est le 1er chunk il va me dire 0, son index dans la liste, soit sa position dans la liste.
+Donc l'ordre de la liste ne doit jamais changer.
+Pour retrouver le chunk on a juste a dire que le best chunk = au chunk[i] pour chaque i dans la liste
+best_chunks = [chunks[i] for i in results[0]]
+
+Ensuite j'envoie au LLM un prompt de texte brut : la question + les chunks
+context = "\n\n".join(best_chunks)
+prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
+
+Rien ne sert de garder le numero du chunk car on y accede grace a l'index, cependant il faut garder le texte pour l'envoyer au LLM, le chemin du fichier qui est probablement exigé dans le JSON de sortie, et les caractères de début et de fin pour calculer le recall@k. Cela sert à dire ou se trouve le chunk dans le fichier d'origine et c'est ce que search_dataset doit écrire dans le JSON et ce que evaluate compare avec les réponses de référence. Donc surement utile dans StudentSearchResults
+
+Chaque élément de la liste devient un dictionnaire :
+```python
+chunks = [
+    {
+        "text": "...",
+        "file_path": "vllm/config.py",
+        "first_character_index": 0,
+        "last_character_index": 1500,
+    },
+    ...
+]
+```
+A l'indexation, on tokenise que le texte :
+```python
+tokens = bm25s.tokenize([c["text"] for c in chunks], stopwords="en", stemmer=stemmer)
+```
+A la recherche :
+```
+results, scores = retriever.retrieve(q_tokens, k=k)
+best = [chunks[i] for i in results[0]]   # dicts complets : texte + fichier + positions
+```
+
+On envoie c['text'] au LLM et on écrit file_path + positions dans le JSON de résultats
+
+Enregistrer les dictionnaires dans chunks.json
+
+mettre dans RAGEngine des vrais datas de base et pas des " " comme j'ai fait
+
+dans search :
+```
+retriever = bm25s.BM25.load("data/processed/bm25_index")
+
+with open("data/processed/chunks.json", encoding="utf-8") as f:
+    chunks = json.load(f)
+
+q_tokens = bm25s.tokenize(query, stopwords="en", stemmer=stemmer)
+results, scores = retriever.retrieve(q_tokens, k=min(k, len(chunks)))
+best = [chunks[i] for i in results[0]]
+```

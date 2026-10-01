@@ -26,6 +26,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except KeyboardInterrupt as e:
-        print_error(e)
+    except KeyboardInterrupt:
+        print_error("program interrupted")
         sys.exit(130)
