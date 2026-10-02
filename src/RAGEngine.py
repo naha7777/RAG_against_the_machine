@@ -1,4 +1,5 @@
 from src.indexer.index import indexer
+from src.retriever.retrieving import retriever
 
 
 class RAGEngine:
@@ -7,36 +8,32 @@ class RAGEngine:
         # check if max_chunk_size is valide and call indexer function
         if isinstance(max_chunk_size, bool):
             raise TypeError("max_chunk_size must be an integer")
-        try:
-            max_chunk_size = int(max_chunk_size)
-        except (TypeError, ValueError):
-            raise TypeError("max_chunk_size must be an integer")
-        if max_chunk_size <= 0:
-            raise ValueError("max_chunk_size must be positive")
-        if max_chunk_size > 2000:
-            raise ValueError("max_chunk_size can't be more than 2000")
+
+        check_int("max_chunk_size", max_chunk_size)
 
         indexer(max_chunk_size)
 
-    def search(self, query: str = "", k: int = 10,
-               verbose: bool = True) -> None:
-        # retourne les meilleurs chunks pour une question
-        print(query)
-        if isinstance(query, (bool, int, float)):
+    def search(self, query: str = "", k: int = 10) -> None:
+        # check if query and k are valide and call retriever function
+        if isinstance(query, (bool, int, float, list, dict)):
             raise TypeError("query must be a string")
         if not query or query == 'query':
             raise ValueError("query must be a question")
+
+        check_int("k", k)
+
+        retriever(query, k)
 
     def search_dataset(self, dataset_path: str = "", k: int = 10,
                        save_directory: str = "") -> None:
         # lance la recherche dans un jeu de données et écrit un JSON
         # StudentSearchResults
-        pass
+        check_int("k", k)
 
     def answer(self, query: str = "", k: int = 10,
                context_limit: int = 3000) -> None:
         # répond a une question en utilisant le retrieved context
-        pass
+        check_int("k", k)
 
     def answer_dataset(self, student_search_results_path: str = "",
                        save_directory: str = "",
@@ -50,3 +47,18 @@ class RAGEngine:
         # cela rapporte mon propre recall@k par rapport à un jeu de données de
         # référence pour mes propres tests
         pass
+
+
+def check_int(name: str, number: int):
+    if isinstance(number, bool):
+        raise TypeError(f"{name} must be an integer")
+    try:
+        number = int(number)
+    except (TypeError, ValueError):
+        raise TypeError(f"{name} must be an integer")
+    if number <= 0:
+        raise ValueError(f"{name} must be positive")
+    if number > 500 and name == "k":
+        raise ValueError(f"{name} can't be more than 500, this is too much")
+    if number > 2000 and name == "max_chunk_size":
+        raise ValueError(f"{name} can't be more than 2000, this is too much")

@@ -6,7 +6,7 @@ from src.utils.display import print_success
 from typing import Any
 
 
-overlap = 0.10
+overlap = 0.05
 
 
 class Chunker:
@@ -47,17 +47,17 @@ class Chunker:
             raise ValueError("can't find files")
 
     def chunk_code_file(self, max_chunk_size: int,
-                        file: str) -> list[dict] | None:
+                        file: str) -> list[dict[Any, Any]] | None:
         file_content = check_and_read_file(file)
 
         chunker = CodeChunker(language="python",
                               chunk_size=max_chunk_size)
 
         chunks_txt = [chunk.text for chunk in chunker.chunk(file_content)]
-        return save_chunks_info(chunks_txt, max_chunk_size, file)
+        return set_chunks_info(chunks_txt, max_chunk_size, file)
 
     def chunk_docs_file(self, max_chunk_size: int,
-                        file: str) -> list[dict] | None:
+                        file: str) -> list[dict[Any, Any]] | None:
         file_content = check_and_read_file(file)
 
         m_chunk_s = max_chunk_size - (int(overlap*max_chunk_size))
@@ -74,7 +74,7 @@ class Chunker:
         chunks_obj = chunker.chunk(file_content)
         refined_chunks = refinery(chunks_obj)
         chunks_txt = [chunk.text for chunk in refined_chunks]
-        return save_chunks_info(chunks_txt, max_chunk_size, file)
+        return set_chunks_info(chunks_txt, max_chunk_size, file)
 
 
 def check_and_read_file(file: str) -> str:
@@ -92,8 +92,9 @@ def check_and_read_file(file: str) -> str:
 
     return code_source
 
-def save_chunks_info(chunks_txt: list[Any], max_chunk_size: int,
-                     file: str) -> list[dict]:
+
+def set_chunks_info(chunks_txt: list[Any], max_chunk_size: int,
+                     file: str) -> list[dict[Any, Any]]:
     i = 0
     chunks = []
     for txt in chunks_txt:

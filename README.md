@@ -40,7 +40,8 @@ Provide clear examples of running your system
 [recall@k](https://milvus.io/ai-quick-reference/what-is-recallatk)\
 [zipfile](https://www.tresfacile.net/le-module-python-zipfile-des-archives-zip/)\
 [pathlib](https://www.datacamp.com/fr/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation)\
-[tqdm](https://www.datacamp.com/fr/tutorial/tqdm-python)
+[tqdm](https://www.datacamp.com/fr/tutorial/tqdm-python)\
+[stemmer](https://www.datacamp.com/fr/tutorial/stemming-lemmatization-python)
 
 ### AI usage
 
@@ -108,24 +109,6 @@ installer transformers pour mettre Qwen en 2/3 lignes
 --------------------------------------------------------------------------------
 uv sync
 
-Gérer dossiers/fichiers absent, pas les permissions
-
-INDEX REPOSITORY :
-- extraire le vllm-0.10.1.zip si il est présent dans data/raw/ (si non le telecharger et le placer dnas le dossier)
-- CHUNKING :
-	- Créer une boucle qui parcourt les dossiers
-	- si le fichier se termine par .md on applique RecursiveChunker.from_recipe("markdown")
-	- si le fichier se termine par .py ou .c on applique le CodeChunker(language=" ")
-	- rassembler tous les chunks dans une seule grande base de donnée (liste python ? / fichier ?) qu'on passe à bm25 pour créer l'index de recherche
-- BM25 index : créer l'index et le rendre persistant, ne se recrée pas a chaque fois
-
-
-Quand on pose une question :
-- on check si ya l'index
-- si non on le crée en moins de 5 min (chunk + bm25)
-- top-k chunk (file_path + character indices)
-- qwen
-- réponse dans un json
 
 4 commandes :
 - index the corpus ONCE :
@@ -163,9 +146,9 @@ Loaded 100 questions ... Processed 100 of 100 questions
 Saved student_search_results_and_answer to .../UnansweredQuestions/dataset_docs_public.json
 ```
 
-proteger si on lance sans uv / sans venv
+protéger si on lance sans uv / sans venv
 
-meme tokenisation a l'index et search :
+meme tokenisation à l'index et search :
 tokens = bm25s.tokenize(chunks_text ou query, stopwords="en", stemmer=stemmer)
 
 question → BM25 → "meilleurs chunks : 50, 12, 7..." → récupérer leur texte → LLM → réponse
@@ -186,22 +169,8 @@ prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
 
 Rien ne sert de garder le numero du chunk car on y accede grace a l'index, cependant il faut garder le texte pour l'envoyer au LLM, le chemin du fichier qui est probablement exigé dans le JSON de sortie, et les caractères de début et de fin pour calculer le recall@k. Cela sert à dire ou se trouve le chunk dans le fichier d'origine et c'est ce que search_dataset doit écrire dans le JSON et ce que evaluate compare avec les réponses de référence. Donc surement utile dans StudentSearchResults
 
-Chaque élément de la liste devient un dictionnaire :
-```python
-chunks = [
-    {
-        "text": "...",
-        "file_path": "vllm/config.py",
-        "first_character_index": 0,
-        "last_character_index": 1500,
-    },
-    ...
-]
-```
-A l'indexation, on tokenise que le texte :
-```python
-tokens = bm25s.tokenize([c["text"] for c in chunks], stopwords="en", stemmer=stemmer)
-```
+
+
 A la recherche :
 ```
 results, scores = retriever.retrieve(q_tokens, k=k)
@@ -209,8 +178,6 @@ best = [chunks[i] for i in results[0]]   # dicts complets : texte + fichier + po
 ```
 
 On envoie c['text'] au LLM et on écrit file_path + positions dans le JSON de résultats
-
-Enregistrer les dictionnaires dans chunks.json
 
 mettre dans RAGEngine des vrais datas de base et pas des " " comme j'ai fait
 

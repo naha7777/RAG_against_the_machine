@@ -13,14 +13,11 @@ except ModuleNotFoundError:
 
 def main() -> int:
     try:
-        print_success("RAG joined the terminal")
         fire.Fire(RAGEngine)
         return 0
     except Exception as e:
         print_error(str(e))
         return 1
-    finally:
-        print_success("RAG left the terminal")
 
 
 if __name__ == "__main__":
