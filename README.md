@@ -225,3 +225,7 @@ q_tokens = bm25s.tokenize(query, stopwords="en", stemmer=stemmer)
 results, scores = retriever.retrieve(q_tokens, k=min(k, len(chunks)))
 best = [chunks[i] for i in results[0]]
 ```
+
+ à la recherche :
+ results, scores = retriever.retrieve(q_tokens, k=k)   # results = indices
+ best = [chunks[i] for i in results[0]]

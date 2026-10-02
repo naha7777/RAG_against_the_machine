@@ -4,6 +4,7 @@ from src.indexer.index import indexer
 class RAGEngine:
 
     def index(self, max_chunk_size: int = 2000) -> None:
+        # check if max_chunk_size is valide and call indexer function
         if isinstance(max_chunk_size, bool):
             raise TypeError("max_chunk_size must be an integer")
         try:
@@ -21,33 +22,31 @@ class RAGEngine:
                verbose: bool = True) -> None:
         # retourne les meilleurs chunks pour une question
         print(query)
-        if isinstance(query, bool) or isinstance(query, int)\
-           or isinstance(query, float):
+        if isinstance(query, (bool, int, float)):
             raise TypeError("query must be a string")
         if not query or query == 'query':
             raise ValueError("query must be a question")
-        return "THIS IS SEARCH"
 
     def search_dataset(self, dataset_path: str = "", k: int = 10,
                        save_directory: str = "") -> None:
         # lance la recherche dans un jeu de données et écrit un JSON
         # StudentSearchResults
-        return "THIS IS SEARCH DATASET"
+        pass
 
     def answer(self, query: str = "", k: int = 10,
                context_limit: int = 3000) -> None:
         # répond a une question en utilisant le retrieved context
-        return "THIS IS ANSWER"
+        pass
 
     def answer_dataset(self, student_search_results_path: str = "",
                        save_directory: str = "",
                        context_limit: int = 3000) -> None:
         # génère les réponses pour un jeu de données en produisant un JSON
         # StudentSearchResultsAndAnswer
-        return "THIS IS ANSWER DATASET"
+        pass
 
     def evaluate(self, student_search_results_path: str = "",
                  dataset_path: str = "") -> None:
         # cela rapporte mon propre recall@k par rapport à un jeu de données de
         # référence pour mes propres tests
-        return "THIS IS EVALUATE"
+        pass

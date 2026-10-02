@@ -17,7 +17,7 @@ def main() -> int:
         fire.Fire(RAGEngine)
         return 0
     except Exception as e:
-        print_error(e)
+        print_error(str(e))
         return 1
     finally:
         print_success("RAG left the terminal")
