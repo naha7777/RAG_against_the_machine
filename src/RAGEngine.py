@@ -24,25 +24,31 @@ class RAGEngine:
 
         retriever(query, k)
 
-    def search_dataset(self, dataset_path: str = "", k: int = 10,
-                       save_directory: str = "") -> None:
+    def search_dataset(self,
+                       dataset_path: str = "data/datasets/UnansweredQuestions/dataset_docs_public.json",
+                       k: int = 10,
+                       save_directory: str = "data/output/search_results/UnansweredQuestions") -> None:
         # lance la recherche dans un jeu de données et écrit un JSON
         # StudentSearchResults
         check_int("k", k)
 
-    def answer(self, query: str = "", k: int = 10,
-               context_limit: int = 3000) -> None:
+    def answer(self, query: str = "", k: int = 10) -> None:
         # répond a une question en utilisant le retrieved context
+        if isinstance(query, (bool, int, float, list, dict)):
+            raise TypeError("query must be a string")
+        if not query or query == 'query':
+            raise ValueError("query must be a question")
         check_int("k", k)
 
-    def answer_dataset(self, student_search_results_path: str = "",
-                       save_directory: str = "",
-                       context_limit: int = 3000) -> None:
+    def answer_dataset(self,
+                       student_search_results_path: str = "data/output/search_results/UnansweredQuestions/dataset_docs_public.json",
+                       save_directory: str = "data/output/search_results_and_answer/UnansweredQuestions") -> None:
         # génère les réponses pour un jeu de données en produisant un JSON
         # StudentSearchResultsAndAnswer
         pass
 
-    def evaluate(self, student_search_results_path: str = "",
+    def evaluate(self,
+                 student_search_results_path: str = "",
                  dataset_path: str = "") -> None:
         # cela rapporte mon propre recall@k par rapport à un jeu de données de
         # référence pour mes propres tests
