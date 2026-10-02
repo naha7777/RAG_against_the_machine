@@ -17,9 +17,9 @@ import bm25s
 import Stemmer
 import json
 import os
+from typing import Any
 from pathlib import Path
 from src.models import MinimalSource, MinimalSearchResults
-from pydantic import BaseModel
 
 
 def retriever(query: str, k: int) -> None:
@@ -32,13 +32,13 @@ def retriever(query: str, k: int) -> None:
     index, score = retriever.retrieve(query_tokens=query_tokens, k=k)
 
     check_file = Path("././data/processed/chunks.json")
-    if check_file.exists is False:
+    if check_file.exists() is False:
         raise ValueError("can't find data/processed/chunks.json, index please")
     if not os.access(check_file, os.R_OK):
         raise ValueError("can't read data/processed/chunks.json,"
                          "please change permissions")
     with open("././data/processed/chunks.json", "r",
-            encoding="utf-8") as f:
+         encoding="utf-8") as f:
         chunks_infos = f.read()
 
     if not chunks_infos:
@@ -46,28 +46,21 @@ def retriever(query: str, k: int) -> None:
 
     chunks_infos = json.loads(chunks_infos)
 
-    chunks: list = index[0]
+    chunks: Any = index[0]
     best_chunks = []
     for nb in chunks:
         best_chunks.append(chunks_infos[nb])
 
     retrieved_sources: list[MinimalSource] = []
 
-    for chunk in best_chunks:
-        min_src = MinimalSource(file_path=chunk['file_path'].strip('././'),
-                                first_character_index=
-                                (chunk['first_character_index']),
-                                last_character_index=
-                                (chunk['last_character_index']))
-        retrieved_sources.append(min_src)
+    for c in best_chunks:
+        src = MinimalSource(file_path=c['file_path'].strip('././'),
+                            first_character_index=c['first_character_index'],
+                            last_character_index=c['last_character_index'])
+        retrieved_sources.append(src)
 
     min_search_res = MinimalSearchResults(question_id="1",
                                           question=query,
                                           retrieved_sources=retrieved_sources)
     minimal_dict = min_search_res.model_dump_json(indent=4)
     print(minimal_dict)
-
-
-# envoyer le resultat à la classe minimalsearch et après faut sérialiser la
-# classe c'est a dire avec pydantic transformer la classe en json dans stdout
-# ca ne va pas créer le json

@@ -4,7 +4,7 @@ from rich.console import Console
 
 try:
     from src.RAGEngine import RAGEngine
-    from src.utils.display import print_error, print_success
+    from src.utils.display import print_error
 except ModuleNotFoundError:
     Console(stderr=True).print(
         "\n[bold red]ERROR:[/] Please run with 'uv run python -m src'\n")

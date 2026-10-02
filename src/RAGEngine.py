@@ -49,7 +49,7 @@ class RAGEngine:
         pass
 
 
-def check_int(name: str, number: int):
+def check_int(name: str, number: int) -> None:
     if isinstance(number, bool):
         raise TypeError(f"{name} must be an integer")
     try:

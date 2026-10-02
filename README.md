@@ -148,15 +148,12 @@ Saved student_search_results_and_answer to .../UnansweredQuestions/dataset_docs_
 
 protéger si on lance sans uv / sans venv
 
-meme tokenisation à l'index et search :
-tokens = bm25s.tokenize(chunks_text ou query, stopwords="en", stemmer=stemmer)
 
 question → BM25 → "meilleurs chunks : 50, 12, 7..." → récupérer leur texte → LLM → réponse
 BM25 ne rédige rien : il classe les chunks. Le LLM reçoit ensuite le texte de ces chunks comme contexte, avec la question.
 
 Questions :
 - se renseigner sur pydantic et uuid
-
 
 BM25 me donne l'index du chunk dans ma liste, donc si c'est le 1er chunk il va me dire 0, son index dans la liste, soit sa position dans la liste.
 Donc l'ordre de la liste ne doit jamais changer.
@@ -169,30 +166,6 @@ prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
 
 Rien ne sert de garder le numero du chunk car on y accede grace a l'index, cependant il faut garder le texte pour l'envoyer au LLM, le chemin du fichier qui est probablement exigé dans le JSON de sortie, et les caractères de début et de fin pour calculer le recall@k. Cela sert à dire ou se trouve le chunk dans le fichier d'origine et c'est ce que search_dataset doit écrire dans le JSON et ce que evaluate compare avec les réponses de référence. Donc surement utile dans StudentSearchResults
 
-
-
-A la recherche :
-```
-results, scores = retriever.retrieve(q_tokens, k=k)
-best = [chunks[i] for i in results[0]]   # dicts complets : texte + fichier + positions
-```
-
 On envoie c['text'] au LLM et on écrit file_path + positions dans le JSON de résultats
 
 mettre dans RAGEngine des vrais datas de base et pas des " " comme j'ai fait
-
-dans search :
-```
-retriever = bm25s.BM25.load("data/processed/bm25_index")
-
-with open("data/processed/chunks.json", encoding="utf-8") as f:
-    chunks = json.load(f)
-
-q_tokens = bm25s.tokenize(query, stopwords="en", stemmer=stemmer)
-results, scores = retriever.retrieve(q_tokens, k=min(k, len(chunks)))
-best = [chunks[i] for i in results[0]]
-```
-
- à la recherche :
- results, scores = retriever.retrieve(q_tokens, k=k)   # results = indices
- best = [chunks[i] for i in results[0]]

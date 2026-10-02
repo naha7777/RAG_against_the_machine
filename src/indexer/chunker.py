@@ -23,7 +23,7 @@ class Chunker:
         # check file
         file = "././data/raw/vllm-0.10.1.zip"
         file_path = Path(file)
-        if file_path.exists is False:
+        if file_path.exists() is False:
             raise ValueError("can't find vllm-0.10.1.zip")
         if file_path.is_file() is False:
             raise ValueError("this is not a file")
@@ -79,7 +79,7 @@ class Chunker:
 
 def check_and_read_file(file: str) -> str:
     check_file = Path(file)
-    if check_file.exists is False:
+    if check_file.exists() is False:
         raise ValueError(f"can't find {file}")
     if not os.access(check_file, os.R_OK):
         raise ValueError(f"can't read {file}, please change permissions")
@@ -94,7 +94,7 @@ def check_and_read_file(file: str) -> str:
 
 
 def set_chunks_info(chunks_txt: list[Any], max_chunk_size: int,
-                     file: str) -> list[dict[Any, Any]]:
+                    file: str) -> list[dict[Any, Any]]:
     i = 0
     chunks = []
     for txt in chunks_txt:
