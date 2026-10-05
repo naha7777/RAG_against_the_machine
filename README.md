@@ -90,35 +90,11 @@ Points de vigilance particuliers :
 - la moulinette ne doit jamais etre appelee/importee dans le code, la commande evaluate du CLI sert seulement au debuggage
 - modeles pydantic fournis sont une base extensible, possibilite d'ajouter des modeles etc
 
-EN GROS
-
-- On a plein de fichiers genre des .py, des .md etc qu'il faut chunker, chaque chunk fait 2000 caracteres max, on chunk differemment un python .py qu'un mardown .md ou qu'un .txt.
-Faut aussi faire gaffe à couper au bon endroit et à avoir le contexte genre overlap un peu devant et derriere
-Pour chunker ya le paquet chonkie
-- une fois qu'on a chunke, on utilise BM25 qui degage les mots nuls du genre 'a', 'de', 'un' et qui classe selon l'occurence du mot pour savoir l'importance, il met au dessus les mots qui reviennent le plus souvent
-- ensuite on prompte le llm en mode t'es un codeur etc
-
-installer transformers pour mettre Qwen en 2/3 lignes
-
 --------------------------------------------------------------------------------
 uv sync
 
 protéger si on lance sans uv / sans venv
 
-
-question → BM25 → "meilleurs chunks : 50, 12, 7..." → récupérer leur texte → LLM → réponse
-BM25 ne rédige rien : il classe les chunks. Le LLM reçoit ensuite le texte de ces chunks comme contexte, avec la question.
-
-Ensuite j'envoie au LLM un prompt de texte brut : la question + les chunks
-context = "\n\n".join(best_chunks)
-prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-
-Rien ne sert de garder le numero du chunk car on y accede grace a l'index, cependant il faut garder le texte pour l'envoyer au LLM, le chemin du fichier qui est probablement exigé dans le JSON de sortie, et les caractères de début et de fin pour calculer le recall@k. Cela sert à dire ou se trouve le chunk dans le fichier d'origine et c'est ce que search_dataset doit écrire dans le JSON et ce que evaluate compare avec les réponses de référence. Donc surement utile dans StudentSearchResults
-
-On envoie c['text'] au LLM et on écrit file_path + positions dans le JSON de résultats
-
 mettre dans RAGEngine des vrais datas de base et pas des " " comme j'ai fait
 
-
-
-utilité des modèles RagDataset, AnsweredQuestion et UnanswerQuestion?????????
+voir pour charger une seule fois le LLM

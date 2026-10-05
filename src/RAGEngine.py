@@ -116,7 +116,7 @@ class RAGEngine:
 
     def answer(self, query: str = "", k: int = 10,
                context_limite: int = 3000) -> None:
-        # répond a une question en utilisant le retrieved context
+        # check if query, k and context limite are valide
         if isinstance(query, (bool, int, float, list, dict)):
             raise TypeError("query must be a string")
         if not query or query == 'query':
@@ -127,12 +127,12 @@ class RAGEngine:
         # call retriever function
         best_chunks: list[Any] = retriever(query, k, False)
 
-        # Find the answer with Qwen 3
+        # Create and tokenize a prompt to send it to Qwen 3 and collect answer
         get_answer = GetAnswer()
-
         tokens = get_answer.augmente(query, best_chunks, context_limite)
         answer = get_answer.generate(tokens)
 
+        # stock informations about all chunks for this question
         retrieved_sources: list[MinimalSource] = []
         for c in best_chunks:
             src = MinimalSource(
@@ -141,6 +141,7 @@ class RAGEngine:
                 last_character_index=c['last_character_index'])
             retrieved_sources.append(src)
 
+        # stock and display informations about the question included the answer
         min_answer = MinimalAnswer(question_id="1", question=query,
                                    retrieved_sources=retrieved_sources,
                                    answer=answer)
@@ -155,7 +156,26 @@ class RAGEngine:
             context_limite: int = 3000) -> None:
         # génère les réponses pour un jeu de données en produisant un JSON
         # StudentSearchResultsAndAnswer
-        pass
+
+        # check if path, context_limite and directory are valide
+        path = Path(student_search_results_path)
+        if path.exists() is False:
+            raise ValueError("can't find the file")
+        if path.is_file() is False:
+            raise ValueError("this is not a file")
+        if not os.access(path, os.R_OK):
+            raise ValueError("can't read the file, please change permissions")
+
+        check_int("context", context_limite)
+
+        if not save_directory:
+            raise ValueError("save_directory must have a name to be create")
+
+        # read the document
+        with open(student_search_results_path, "r", encoding="utf-8") as f:
+            doc_infos = f.read()
+
+        doc_infos = json.loads(doc_infos)
 
     def evaluate(self,
                  student_search_results_path: str = "",
