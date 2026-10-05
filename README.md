@@ -41,18 +41,12 @@ Provide clear examples of running your system
 [zipfile](https://www.tresfacile.net/le-module-python-zipfile-des-archives-zip/)\
 [pathlib](https://www.datacamp.com/fr/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation)\
 [tqdm](https://www.datacamp.com/fr/tutorial/tqdm-python)\
-[stemmer](https://www.datacamp.com/fr/tutorial/stemming-lemmatization-python)
+[stemmer](https://www.datacamp.com/fr/tutorial/stemming-lemmatization-python)\
+[transformers](https://blog.stephane-robert.info/docs/developper/programmation/python/hugging-face/)
 
 ### AI usage
 
 _____________________________________________
-
-Modèles de données (Pydantic) : le sujet impose des classes précises pour valider les échanges entre étapes :
-- `MinimalSource` (file_path + indices de caractères)
-- `UnansweredQuestion`/`AnsweredQuestion`
-- `RagDataset`
-- `MinimalSearchResults`/`MinimalAnswer`
-- `StudentSearchResults`/`StudentSearchResultAndAnswer` (format de sortie attendu)
 
 Evaluation : recall@k
 - pour chaque question, on regarde la proportion des sources correctes retrouvées parmi les k premiers resultats
@@ -109,56 +103,11 @@ installer transformers pour mettre Qwen en 2/3 lignes
 --------------------------------------------------------------------------------
 uv sync
 
-
-4 commandes :
-- index the corpus ONCE :
-```bash
-uv run python -m src index --max_chunk_size 2000
-Ingestion complete! Indices saved under data/processed/
-```
-- search a dataset :
-```bash
-uv run python -m src search_dataset
---dataset_path data/datasets/UnansweredQuestions/dataset_docs_public.json
---k 10
---save_directory data/output/search_results/UnansweredQuestions
-Saved student_search_results to data/output/search_results/UnansweredQuestions/dataset_docs_public.json
-```
-
-- score with the moulinette :
-```bash
-./moulinette evaluate_student_search_results
-data/output/search_results/UnansweredQuestions/dataset_docs_public.json
-data/datasets/AnsweredQuestions/dataset_docs_public.json
---k 10 --max_context_length 2000
-Student data is valid: True
-Evaluation Results
-========================================
-Recall@1: 0.450 Recall@3: 0.590 Recall@5: 0.650 Recall@10: 0.720
-```
-
-- générer une réponse :
-```bash
-uv run python -m src answer_dataset
---student_search_results_path data/output/search_results/UnansweredQuestions/dataset_docs_public.json
---save_directory data/output/search_results_and_answer/UnansweredQuestions
-Loaded 100 questions ... Processed 100 of 100 questions
-Saved student_search_results_and_answer to .../UnansweredQuestions/dataset_docs_public.json
-```
-
 protéger si on lance sans uv / sans venv
 
 
 question → BM25 → "meilleurs chunks : 50, 12, 7..." → récupérer leur texte → LLM → réponse
 BM25 ne rédige rien : il classe les chunks. Le LLM reçoit ensuite le texte de ces chunks comme contexte, avec la question.
-
-Questions :
-- se renseigner sur pydantic et uuid
-
-BM25 me donne l'index du chunk dans ma liste, donc si c'est le 1er chunk il va me dire 0, son index dans la liste, soit sa position dans la liste.
-Donc l'ordre de la liste ne doit jamais changer.
-Pour retrouver le chunk on a juste a dire que le best chunk = au chunk[i] pour chaque i dans la liste
-best_chunks = [chunks[i] for i in results[0]]
 
 Ensuite j'envoie au LLM un prompt de texte brut : la question + les chunks
 context = "\n\n".join(best_chunks)
@@ -169,3 +118,7 @@ Rien ne sert de garder le numero du chunk car on y accede grace a l'index, cepen
 On envoie c['text'] au LLM et on écrit file_path + positions dans le JSON de résultats
 
 mettre dans RAGEngine des vrais datas de base et pas des " " comme j'ai fait
+
+
+
+utilité des modèles RagDataset, AnsweredQuestion et UnanswerQuestion?????????
