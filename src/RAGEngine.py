@@ -2,7 +2,8 @@ from src.indexer.index import indexer
 from src.retriever.retrieving import retriever
 from src.answering.answer import GetAnswer
 from src.models import (MinimalSearchResults, StudentSearchResults,
-                        MinimalAnswer, MinimalSource)
+                        MinimalAnswer, MinimalSource,
+                        StudentSearchResultsAndAnswer)
 from pathlib import Path
 from typing import Any
 import os
@@ -65,16 +66,13 @@ class RAGEngine:
             raise ValueError("this is not a file")
         if not os.access(path, os.R_OK):
             raise ValueError("can't read the file, please change permissions")
-
         check_int("k", k)
-
         if not save_directory:
             raise ValueError("save_directory must have a name to be create")
 
         # read the dataset document
         with open(dataset_path, "r", encoding="utf-8") as f:
             datasets_info = f.read()
-
         datasets_info = json.loads(datasets_info)
 
         search_res_list = []
@@ -93,24 +91,11 @@ class RAGEngine:
                                                k=k)
 
         # find the file name to create the final json
-        if "/" in dataset_path:
-            cut_path = dataset_path.split("/")
-            file_name = cut_path[len(cut_path) - 1]
-        else:
-            file_name = dataset_path
-        if not file_name.endswith(".json"):
-            raise ValueError("dataset_path must go to a json file")
+        file_name = check_json(dataset_path)
 
         # final json creation
         if verbose is True:
-            json_content = stud_search_res.model_dump_json(indent=4)
-            path = Path(save_directory)
-            if path.exists() is False:
-                os.makedirs(save_directory)
-            with open(f"{save_directory}/{file_name}", "w",
-                      encoding="utf-8") as f:
-                f.write(json_content)
-
+            create_json(save_directory, file_name, stud_search_res)
             print(f"Saved student_search_results to {save_directory}"
                   f"/{file_name}")
 
@@ -153,29 +138,62 @@ class RAGEngine:
             self,
             student_search_results_path: str = student_search_results_path,
             save_directory: str = save_answer_dir,
-            context_limite: int = 3000) -> None:
-        # génère les réponses pour un jeu de données en produisant un JSON
-        # StudentSearchResultsAndAnswer
+            context_limite: int = 3000,
+            k: int = 10) -> None:
 
-        # check if path, context_limite and directory are valide
+        # check if path, k, context_limite and directory are valide
         path = Path(student_search_results_path)
         if path.exists() is False:
-            raise ValueError("can't find the file")
+            raise ValueError("can't find the file with the path :"
+                             f" {student_search_results_path}")
         if path.is_file() is False:
             raise ValueError("this is not a file")
         if not os.access(path, os.R_OK):
             raise ValueError("can't read the file, please change permissions")
-
         check_int("context", context_limite)
-
+        check_int("k", k)
         if not save_directory:
             raise ValueError("save_directory must have a name to be create")
 
         # read the document
         with open(student_search_results_path, "r", encoding="utf-8") as f:
             doc_infos = f.read()
-
         doc_infos = json.loads(doc_infos)
+
+        # find best_chunks for each question of the document and give it
+        # to LLM to receive answers
+        answer_lst = []
+        for data in doc_infos["rag_questions"]:
+            best_chunks = retriever(data["question"], k, False)
+            get_answer = GetAnswer()
+            tokens = get_answer.augmente(data["question"], best_chunks,
+                                         context_limite)
+            answer = get_answer.generate(tokens)
+            retrieved_sources: list[MinimalSource] = []
+            for c in best_chunks:
+                src = MinimalSource(
+                    file_path=c['file_path'].strip('././'),
+                    first_character_index=c['first_character_index'],
+                    last_character_index=c['last_character_index'])
+                retrieved_sources.append(src)
+            min_answer = MinimalAnswer(question_id=data["question_id"],
+                                       question=data["question"],
+                                       retrieved_sources=retrieved_sources,
+                                       answer=answer)
+            answer_lst.append(min_answer)
+
+        stud_search_answ = StudentSearchResultsAndAnswer(
+            search_results=answer_lst,
+            k=k
+            )
+
+        # find the file name to create the final json
+        file_name = check_json(student_search_results_path)
+
+        # json creation
+        create_json(save_directory, file_name, stud_search_answ)
+        print(f"Saved student_search_results_and_answer to {save_directory}"
+              f"/{file_name}")
 
     def evaluate(self,
                  student_search_results_path: str = "",
@@ -200,3 +218,25 @@ def check_int(name: str, number: int) -> None:
         raise ValueError(f"{name} can't be more than 2000, this is too much")
     if number > 8000 and name == "context":
         raise ValueError(f"{name} can't be more than 8000, this is too much")
+
+def check_json(path: str) -> str:
+    if "/" in path:
+        cut_path = path.split("/")
+        file_name = cut_path[len(cut_path) - 1]
+    else:
+        file_name = path
+    if not file_name.endswith(".json"):
+        raise ValueError("student_search_results_path must go to a json"
+                         " file")
+
+def create_json(
+        save_directory: str,
+        file_name: str,
+        content: StudentSearchResultsAndAnswer | StudentSearchResults) -> None:
+    json_content = content.model_dump_json(indent=4)
+    path = Path(save_directory)
+    if path.exists() is False:
+        os.makedirs(save_directory)
+    with open(f"{save_directory}/{file_name}", "w",
+                encoding="utf-8") as f:
+        f.write(json_content)

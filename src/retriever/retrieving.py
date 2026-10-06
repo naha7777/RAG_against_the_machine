@@ -9,8 +9,12 @@ from src.models import MinimalSource
 
 def retriever(query: str, k: int,
               verbose: bool) -> list[MinimalSource] | list[Any]:
-    retriever = bm25s.BM25.load("././data/processed/bm25_index",
-                                load_corpus=True)
+    try:
+        retriever = bm25s.BM25.load("././data/processed/bm25_index",
+                                    load_corpus=True)
+    except FileNotFoundError:
+        raise FileNotFoundError("can't find index, please create it with "
+                                "'uv run python -m src index'")
 
     stemmer = Stemmer.Stemmer('english')
 
