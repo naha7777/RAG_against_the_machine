@@ -219,6 +219,7 @@ def check_int(name: str, number: int) -> None:
     if number > 8000 and name == "context":
         raise ValueError(f"{name} can't be more than 8000, this is too much")
 
+
 def check_json(path: str) -> str:
     if "/" in path:
         cut_path = path.split("/")
@@ -230,17 +231,19 @@ def check_json(path: str) -> str:
                          " file")
     return file_name
 
+
 def create_json(
-        save_directory: str,
-        file_name: str,
-        content: StudentSearchResultsAndAnswer | StudentSearchResults) -> None:
+    save_directory: str,
+    file_name: str,
+    content: StudentSearchResultsAndAnswer | StudentSearchResults) -> None:
     json_content = content.model_dump_json(indent=4)
     path = Path(save_directory)
     if path.exists() is False:
         os.makedirs(save_directory)
     with open(f"{save_directory}/{file_name}", "w",
-                encoding="utf-8") as f:
+              encoding="utf-8") as f:
         f.write(json_content)
+
 
 def find_chunks_infos(data: Any) -> list[Any]:
     check_file = Path("././data/processed/chunks.json")
@@ -248,9 +251,9 @@ def find_chunks_infos(data: Any) -> list[Any]:
         raise ValueError("You have to index before")
     if not os.access(check_file, os.R_OK):
         raise ValueError("can't read data/processed/chunks.json,"
-                            "please change permissions")
+                         "please change permissions")
     with open("././data/processed/chunks.json", "r",
-                encoding="utf-8") as f:
+              encoding="utf-8") as f:
         chunks_infos = f.read()
     if not chunks_infos:
         raise ValueError("error finding informations about chunks")
