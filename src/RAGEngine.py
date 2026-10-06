@@ -163,14 +163,14 @@ class RAGEngine:
         # find best_chunks for each question of the document and give it
         # to LLM to receive answers
         answer_lst = []
-        for data in doc_infos["rag_questions"]:
-            best_chunks = retriever(data["question"], k, False)
-            get_answer = GetAnswer()
-            tokens = get_answer.augmente(data["question"], best_chunks,
+        get_answer = GetAnswer()
+        for data in doc_infos["search_results"]:
+            chunks = find_chunks_infos(data)
+            tokens = get_answer.augmente(data["question"], chunks,
                                          context_limite)
             answer = get_answer.generate(tokens)
             retrieved_sources: list[MinimalSource] = []
-            for c in best_chunks:
+            for c in chunks:
                 src = MinimalSource(
                     file_path=c['file_path'].strip('././'),
                     first_character_index=c['first_character_index'],
@@ -228,6 +228,7 @@ def check_json(path: str) -> str:
     if not file_name.endswith(".json"):
         raise ValueError("student_search_results_path must go to a json"
                          " file")
+    return file_name
 
 def create_json(
         save_directory: str,
@@ -240,3 +241,29 @@ def create_json(
     with open(f"{save_directory}/{file_name}", "w",
                 encoding="utf-8") as f:
         f.write(json_content)
+
+def find_chunks_infos(data: Any) -> list[Any]:
+    check_file = Path("././data/processed/chunks.json")
+    if check_file.exists() is False:
+        raise ValueError("You have to index before")
+    if not os.access(check_file, os.R_OK):
+        raise ValueError("can't read data/processed/chunks.json,"
+                            "please change permissions")
+    with open("././data/processed/chunks.json", "r",
+                encoding="utf-8") as f:
+        chunks_infos = f.read()
+    if not chunks_infos:
+        raise ValueError("error finding informations about chunks")
+    chunks_infos = json.loads(chunks_infos)
+
+    save_chunk = []
+    for sources in data["retrieved_sources"]:
+        for c in chunks_infos:
+            c_file = c['file_path'].strip("././")
+            c_first = int(c['first_character_index'])
+            c_last = int(c['last_character_index'])
+            if c_file == sources['file_path'] \
+               and c_first == int(sources['first_character_index']) \
+               and c_last == int(sources['last_character_index']):
+                save_chunk.append(c)
+    return save_chunk
