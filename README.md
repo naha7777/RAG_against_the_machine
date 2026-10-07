@@ -98,3 +98,5 @@ protéger si on lance sans uv / sans venv
 mettre dans RAGEngine des vrais datas de base et pas des " " comme j'ai fait
 
 voir pour charger une seule fois le LLM
+
+avant de push : delete data/output et data/processed

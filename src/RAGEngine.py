@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 import os
 import json
+import bm25s
 
 
 dataset_path = "data/datasets/public/UnansweredQuestions/"\
@@ -40,7 +41,13 @@ class RAGEngine:
         check_int("k", k)
 
         # call retriever function
-        retrieved_sources = retriever(query, k, True)
+        try:
+            bm25 = bm25s.BM25.load("././data/processed/bm25_index",
+                                   load_corpus=True)
+        except FileNotFoundError:
+            raise FileNotFoundError("can't find index, please create it with "
+                                    "'uv run python -m src index'")
+        retrieved_sources = retriever(bm25, query, k, True)
 
         # stock infos on MinimalSearchResults model
         min_search_res = MinimalSearchResults(
@@ -78,8 +85,14 @@ class RAGEngine:
         search_res_list = []
         # call the retriever for each question on dataset and stock it
         # on MinimalSearchResults model
+        try:
+            bm25 = bm25s.BM25.load("././data/processed/bm25_index",
+                                   load_corpus=True)
+        except FileNotFoundError:
+            raise FileNotFoundError("can't find index, please create it with "
+                                    "'uv run python -m src index'")
         for data in datasets_info["rag_questions"]:
-            retrieved_sources = retriever(data["question"], k, True)
+            retrieved_sources = retriever(bm25, data["question"], k, True)
             min_search_res = MinimalSearchResults(
                 question_id=data["question_id"],
                 question=data["question"],
@@ -110,7 +123,13 @@ class RAGEngine:
         check_int("context", context_limite)
 
         # call retriever function
-        best_chunks: list[Any] = retriever(query, k, False)
+        try:
+            bm25 = bm25s.BM25.load("././data/processed/bm25_index",
+                                   load_corpus=True)
+        except FileNotFoundError:
+            raise FileNotFoundError("can't find index, please create it with "
+                                    "'uv run python -m src index'")
+        best_chunks: list[Any] = retriever(bm25, query, k, False)
 
         # Create and tokenize a prompt to send it to Qwen 3 and collect answer
         get_answer = GetAnswer()
@@ -160,12 +179,26 @@ class RAGEngine:
             doc_infos = f.read()
         doc_infos = json.loads(doc_infos)
 
+        # check and read chunks.json
+        check_file = Path("././data/processed/chunks.json")
+        if check_file.exists() is False:
+            raise ValueError("You have to index before")
+        if not os.access(check_file, os.R_OK):
+            raise ValueError("can't read data/processed/chunks.json,"
+                            "please change permissions")
+        with open("././data/processed/chunks.json", "r",
+                encoding="utf-8") as f:
+            chunks_infos = f.read()
+        if not chunks_infos:
+            raise ValueError("error finding informations about chunks")
+        chunks_infos = json.loads(chunks_infos)
+
         # find best_chunks for each question of the document and give it
         # to LLM to receive answers
         answer_lst = []
         get_answer = GetAnswer()
         for data in doc_infos["search_results"]:
-            chunks = find_chunks_infos(data)
+            chunks = find_chunks_infos(chunks_infos, data)
             tokens = get_answer.augmente(data["question"], chunks,
                                          context_limite)
             answer = get_answer.generate(tokens)
@@ -245,20 +278,7 @@ def create_json(
         f.write(json_content)
 
 
-def find_chunks_infos(data: Any) -> list[Any]:
-    check_file = Path("././data/processed/chunks.json")
-    if check_file.exists() is False:
-        raise ValueError("You have to index before")
-    if not os.access(check_file, os.R_OK):
-        raise ValueError("can't read data/processed/chunks.json,"
-                         "please change permissions")
-    with open("././data/processed/chunks.json", "r",
-              encoding="utf-8") as f:
-        chunks_infos = f.read()
-    if not chunks_infos:
-        raise ValueError("error finding informations about chunks")
-    chunks_infos = json.loads(chunks_infos)
-
+def find_chunks_infos(chunks_infos: Any, data: Any) -> list[Any]:
     save_chunk = []
     for sources in data["retrieved_sources"]:
         for c in chunks_infos:
