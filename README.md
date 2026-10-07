@@ -61,12 +61,6 @@ Exigences techniques générales :
 - python3.10, flake8, mypy, docstrings
 - gestion propre des erreurs (try except) - aucun crash
 - uv comme gestionnaire de paquets
-- CLI avec Python Fire : chaque commande est écrite de cette manière : uv run python -m src <command> [options]:
-	- index –max_chunk_size <int> = chunk tout data/raw/ et crée un index dans data/processed
-	- search <query> –k <int> = retourne les meilleurs chunks pour une question
-	- search_dataset –dataset_path <path> –k <int> –save_directory <dir> = lance la recherche dans un jeu de données et écrit un JSON StudentSearchResults
-	- answer <query> –k <int> = répond a une question en utilisant le retrieved context
-	- answer_dataset –student_search_results_path <path> –save_directory <dir> = génère les réponses pour un jeu de données en produisant un JSON StudentSearchResultsAndAnswer
 	- evaluate –student_search_results_path <path> –dataset_path <path> = cela rapporte mon propre recall@k par rapport à un jeu de données de référence pour mes propres tests
 - tqdm pour les barres de progression
 - un makefile avec les regles install, run, debug, clean, lint, lint-strict
@@ -88,7 +82,6 @@ Points de vigilance particuliers :
 - le file_path doit matcher EXACTEMENT le chemin du corpus (ex: data/raw/vllm-0.10.1/docs/features/lora.md) -> un resultat dans le mauvais fichier ne compte jamais
 - ne jamais depasser 2000 caracteres par chunk
 - la moulinette ne doit jamais etre appelee/importee dans le code, la commande evaluate du CLI sert seulement au debuggage
-- modeles pydantic fournis sont une base extensible, possibilite d'ajouter des modeles etc
 
 --------------------------------------------------------------------------------
 uv sync
@@ -100,3 +93,4 @@ mettre dans RAGEngine des vrais datas de base et pas des " " comme j'ai fait
 voir pour charger une seule fois le LLM
 
 avant de push : delete data/output et data/processed
+

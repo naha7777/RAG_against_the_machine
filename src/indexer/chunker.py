@@ -53,28 +53,25 @@ class Chunker:
         chunker = CodeChunker(language="python",
                               chunk_size=max_chunk_size)
 
-        chunks_txt = [chunk.text for chunk in chunker.chunk(file_content)]
-        return set_chunks_info(chunks_txt, max_chunk_size, file)
+        return set_chunks_info(list(chunker.chunk(file_content)), file)
 
     def chunk_docs_file(self, max_chunk_size: int,
                         file: str) -> list[dict[Any, Any]] | None:
         file_content = check_and_read_file(file)
 
-        m_chunk_s = max_chunk_size - (int(overlap*max_chunk_size))
-
         if file.endswith(".md"):
             chunker = RecursiveChunker.from_recipe("markdown", lang="en",
-                                                   chunk_size=m_chunk_s)
+                                                   chunk_size=max_chunk_size)
         else:
-            chunker = RecursiveChunker(chunk_size=m_chunk_s)
+            chunker = RecursiveChunker(chunk_size=max_chunk_size)
 
-        refinery = OverlapRefinery(context_size=overlap,
-                                   method="justified")
-
-        chunks_obj = chunker.chunk(file_content)
-        refined_chunks = refinery(chunks_obj)
-        chunks_txt = [chunk.text for chunk in refined_chunks]
-        return set_chunks_info(chunks_txt, max_chunk_size, file)
+        chunks_obj = list(chunker.chunk(file_content))
+        chunks = set_chunks_info(chunks_obj, file)
+        for c in chunks:
+            real = file_content[c["first_character_index"]:c["last_character_index"]]
+            if real != c["text"]:
+                raise ValueError(f"bad positions in {c['file_path']}")
+        return chunks
 
 
 def check_and_read_file(file: str) -> str:
@@ -93,18 +90,14 @@ def check_and_read_file(file: str) -> str:
     return code_source
 
 
-def set_chunks_info(chunks_txt: list[Any], max_chunk_size: int,
+def set_chunks_info(chunks_obj: list[Any],
                     file: str) -> list[dict[Any, Any]]:
-    i = 0
     chunks = []
-    for txt in chunks_txt:
-        if i != 0:
-            i += 1
+    for c in chunks_obj:
         chunk = {}
-        chunk["text"] = txt
+        chunk["text"] = c.text
         chunk["file_path"] = file
-        chunk["first_character_index"] = str(i)
-        i += max_chunk_size
-        chunk["last_character_index"] = str(i)
+        chunk["first_character_index"] = c.start_index
+        chunk["last_character_index"] = c.end_index
         chunks.append(chunk)
     return chunks

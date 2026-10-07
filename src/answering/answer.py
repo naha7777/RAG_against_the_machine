@@ -1,13 +1,16 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from typing import Any
-import sys
+import torch
 
 
 class GetAnswer:
     def __init__(self) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        dtype = torch.float16 if device == "cuda" else torch.float32
         self.model: Any = (
-            AutoModelForCausalLM.from_pretrained("Qwen/Qwen3-0.6B"))
+            AutoModelForCausalLM.from_pretrained("Qwen/Qwen3-0.6B",
+                                                 torch_dtype=dtype)).to(device)
 
     def augmente(self, query: str, chunks: list[Any],
                  context_limite: int) -> Any:

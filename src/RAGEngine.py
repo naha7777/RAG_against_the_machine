@@ -4,8 +4,10 @@ from src.answering.answer import GetAnswer
 from src.models import (MinimalSearchResults, StudentSearchResults,
                         MinimalAnswer, MinimalSource,
                         StudentSearchResultsAndAnswer)
+from src.utils.check import check_path, check_int, check_json, check_query
 from pathlib import Path
 from typing import Any
+from tqdm import tqdm
 import os
 import json
 import bm25s
@@ -23,30 +25,17 @@ class RAGEngine:
 
     def index(self, max_chunk_size: int = 2000) -> None:
         # check if max_chunk_size is valide and call indexer function
-        if isinstance(max_chunk_size, bool):
-            raise TypeError("max_chunk_size must be an integer")
-
         check_int("max_chunk_size", max_chunk_size)
-
         indexer(max_chunk_size)
 
     def search(self, query: str = "", k: int = 10,
                verbose: bool = True) -> None:
         # check if query and k are valide
-        if isinstance(query, (bool, int, float, list, dict)):
-            raise TypeError("query must be a string")
-        if not query or query == 'query':
-            raise ValueError("query must be a question")
-
+        check_query(query)
         check_int("k", k)
 
-        # call retriever function
-        try:
-            bm25 = bm25s.BM25.load("././data/processed/bm25_index",
-                                   load_corpus=True)
-        except FileNotFoundError:
-            raise FileNotFoundError("can't find index, please create it with "
-                                    "'uv run python -m src index'")
+        # load bm25 and call retriever function
+        bm25 = load_bm()
         retrieved_sources = retriever(bm25, query, k, True)
 
         # stock infos on MinimalSearchResults model
@@ -65,14 +54,8 @@ class RAGEngine:
                        k: int = 10,
                        save_directory: str = save_directory,
                        verbose: bool = True) -> None:
-        #  check if path, k, and directory are valide
-        path = Path(dataset_path)
-        if path.exists() is False:
-            raise ValueError("can't find the file")
-        if path.is_file() is False:
-            raise ValueError("this is not a file")
-        if not os.access(path, os.R_OK):
-            raise ValueError("can't read the file, please change permissions")
+        # check if path, k, and directory are valide
+        check_path(dataset_path)
         check_int("k", k)
         if not save_directory:
             raise ValueError("save_directory must have a name to be create")
@@ -83,14 +66,9 @@ class RAGEngine:
         datasets_info = json.loads(datasets_info)
 
         search_res_list = []
-        # call the retriever for each question on dataset and stock it
-        # on MinimalSearchResults model
-        try:
-            bm25 = bm25s.BM25.load("././data/processed/bm25_index",
-                                   load_corpus=True)
-        except FileNotFoundError:
-            raise FileNotFoundError("can't find index, please create it with "
-                                    "'uv run python -m src index'")
+        # load bm25 and call the retriever for each question on dataset
+        # and stock it on MinimalSearchResults model
+        bm25 = load_bm()
         for data in datasets_info["rag_questions"]:
             retrieved_sources = retriever(bm25, data["question"], k, True)
             min_search_res = MinimalSearchResults(
@@ -115,20 +93,12 @@ class RAGEngine:
     def answer(self, query: str = "", k: int = 10,
                context_limite: int = 3000) -> None:
         # check if query, k and context limite are valide
-        if isinstance(query, (bool, int, float, list, dict)):
-            raise TypeError("query must be a string")
-        if not query or query == 'query':
-            raise ValueError("query must be a question")
+        check_query(query)
         check_int("k", k)
         check_int("context", context_limite)
 
-        # call retriever function
-        try:
-            bm25 = bm25s.BM25.load("././data/processed/bm25_index",
-                                   load_corpus=True)
-        except FileNotFoundError:
-            raise FileNotFoundError("can't find index, please create it with "
-                                    "'uv run python -m src index'")
+        # load bm25 and call retriever function
+        bm25 = load_bm()
         best_chunks: list[Any] = retriever(bm25, query, k, False)
 
         # Create and tokenize a prompt to send it to Qwen 3 and collect answer
@@ -161,14 +131,7 @@ class RAGEngine:
             k: int = 10) -> None:
 
         # check if path, k, context_limite and directory are valide
-        path = Path(student_search_results_path)
-        if path.exists() is False:
-            raise ValueError("can't find the file with the path :"
-                             f" {student_search_results_path}")
-        if path.is_file() is False:
-            raise ValueError("this is not a file")
-        if not os.access(path, os.R_OK):
-            raise ValueError("can't read the file, please change permissions")
+        check_path(student_search_results_path)
         check_int("context", context_limite)
         check_int("k", k)
         if not save_directory:
@@ -193,11 +156,15 @@ class RAGEngine:
             raise ValueError("error finding informations about chunks")
         chunks_infos = json.loads(chunks_infos)
 
+        # find the file name to create the final json
+        file_name = check_json(student_search_results_path)
+
         # find best_chunks for each question of the document and give it
         # to LLM to receive answers
         answer_lst = []
         get_answer = GetAnswer()
-        for data in doc_infos["search_results"]:
+        i = 0
+        for data in tqdm(doc_infos["search_results"], desc="Answer Dataset"):
             chunks = find_chunks_infos(chunks_infos, data)
             tokens = get_answer.augmente(data["question"], chunks,
                                          context_limite)
@@ -214,55 +181,38 @@ class RAGEngine:
                                        retrieved_sources=retrieved_sources,
                                        answer=answer)
             answer_lst.append(min_answer)
+            i += 1
+            # save each 10 questions
+            if i % 10 == 0:
+                stud_search_answ = StudentSearchResultsAndAnswer(
+                    search_results=answer_lst, k=k)
+                create_json(save_directory, file_name, stud_search_answ)
+                print(f"Saved student_search_results_and_answer to "
+                      f"{save_directory}/{file_name}")
 
-        stud_search_answ = StudentSearchResultsAndAnswer(
-            search_results=answer_lst,
-            k=k
-            )
-
-        # find the file name to create the final json
-        file_name = check_json(student_search_results_path)
-
-        # json creation
-        create_json(save_directory, file_name, stud_search_answ)
-        print(f"Saved student_search_results_and_answer to {save_directory}"
-              f"/{file_name}")
+        # final save
+        if answer_lst:
+            stud_search_answ = StudentSearchResultsAndAnswer(
+                search_results=answer_lst, k=k)
+            create_json(save_directory, file_name, stud_search_answ)
+            print(f"Final save : saved student_search_results_and_answer to "
+                  f"{save_directory}/{file_name}")
 
     def evaluate(self,
                  student_search_results_path: str = "",
                  dataset_path: str = "") -> None:
-        # cela rapporte mon propre recall@k par rapport à un jeu de données de
-        # référence pour mes propres tests
-        pass
+        check_path(student_search_results_path)
+        check_path(dataset_path)
 
 
-def check_int(name: str, number: int) -> None:
-    if isinstance(number, bool):
-        raise TypeError(f"{name} must be an integer")
+def load_bm() -> Any:
     try:
-        number = int(number)
-    except (TypeError, ValueError):
-        raise TypeError(f"{name} must be an integer")
-    if number <= 0:
-        raise ValueError(f"{name} must be positive")
-    if number > 20 and name == "k":
-        raise ValueError(f"{name} can't be more than 500, this is too much")
-    if number > 2000 and name == "max_chunk_size":
-        raise ValueError(f"{name} can't be more than 2000, this is too much")
-    if number > 8000 and name == "context":
-        raise ValueError(f"{name} can't be more than 8000, this is too much")
-
-
-def check_json(path: str) -> str:
-    if "/" in path:
-        cut_path = path.split("/")
-        file_name = cut_path[len(cut_path) - 1]
-    else:
-        file_name = path
-    if not file_name.endswith(".json"):
-        raise ValueError("student_search_results_path must go to a json"
-                         " file")
-    return file_name
+        bm25 = bm25s.BM25.load("././data/processed/bm25_index",
+                                load_corpus=True)
+    except FileNotFoundError:
+        raise FileNotFoundError("can't find index, please create it with "
+                                "'uv run python -m src index'")
+    return bm25
 
 
 def create_json(
