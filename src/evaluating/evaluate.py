@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 
 def evaluator(my_answers_path: str, ref_answers_path: str) -> None:
@@ -7,96 +8,98 @@ def evaluator(my_answers_path: str, ref_answers_path: str) -> None:
     with open(ref_answers_path, "r") as f:
         reference_file = json.load(f)
 
-    recall_lst = [1, 3, 5, 10]
+    for key, v in my_file.items():
+        if key == "k":
+            k = v
+        else:
+            search_results = v
 
-    # pour chaque chiffre de la chiffre on va faire un recall si on peut
-    # on envoie les k premiers chunks a la fonction recall
-    # on envoie aussi la source de référence
+    for key, v in reference_file.items():
+        rag_questions = v
+
+    for i in range(len(rag_questions)):
+        reference = rag_questions[i]
+        my_research = search_results[i]
+        for key, v in reference.items():
+            if key == 'sources':
+                ref_sources = v
+        if ref_sources:
+            i_chunk_lst = []
+            for src in ref_sources:
+                for key, value in src.items():
+                    if key == 'file_path':
+                        ref_file_path = value
+                    elif key == 'first_character_index':
+                        ref_first = value
+                    elif key == 'last_character_index':
+                        ref_last = value
+                for key, val in my_research.items():
+                    if key == "retrieved_sources":
+                        if len(ref_sources) <= 1:
+                            i_chunks = find_chunks(ref_file_path, val, k)
+                        else:
+                            i_chunk_lst.append(find_chunks(ref_file_path, val,
+                                                           k))
+            # on sort de la boucle
+            # soit on a une liste de listes de chunks (si plrs refs/src)
+            # pour 2 refs par ex : [[0, 5, 10], [3, 4, 6]]
+            # soit on a une liste de chunks (si une seule ref/src)
+            # ex : [0, 1, 2, 3, 4]
+            # notre but c'est de mettre cette liste dans une fonction qui
+            # calcule le recall@1, le recall@3, le recall@5, le recall@10
+            # si ya assez de k pour ca
+            if len(ref_sources) <= 1:
+                recall(i_chunks, k)
+            elif len(ref_sources) > 1 and i_chunk_lst != []:
+                recall(i_chunk_lst, k)
+        else:
+            raise ValueError("can't find sources")
 
 
-def recall() -> None:
+def find_chunks(ref_file: str, retrieved_sources: list[dict[str, Any]],
+                k: int) -> list[int]:
+    chunk_index_list = []
+    n = 0
+    while n < k:
+        src = retrieved_sources[n]
+        for key, value in src.items():
+            if value == ref_file:
+                chunk_index_list.append(n)
+        n += 1
+    return chunk_index_list
+
+
+def recall(chunk_lst: list[int] | list[list[int]], k: int) -> None:
     pass
 
+# Le recall@5 ne compare pas "5 chunks contre 5 chunks". Pour chaque question,
+# on regarde si au moins une des sources de référence est retrouvée parmi les k
+# premiers résultats. Avec une seule source de référence, c'est simplement
+# "est-ce que ce passage est dans mes 5 premiers?"
 
-# EXEMPLE DE REFERENCE
-# ON VA IMAGINER QU'IL PUISSE Y AVOIR PLUSIEURS REFERENCES DANS SOURCES
+# Pour une question :
+# recall@k = (nb de sources de référence retrouvées dans le tok k) /
+# (nombre de sources de référence)
 
-# {
-#   "rag_questions": [
-#     {
-#       "question_id": "189c8b8a-e59c-4fca-92ad-c02df42cbe40",
-#       "question": "What activation formats does the fused batched MoE layer return in vLLM?",
-#       "answer": "The fused batched MoE layer returns a tuple of two `mk.FusedMoEActivationFormat.BatchedExperts` values from its `activation_formats` property.",
-#       "sources": [
-#         {
-#           "file_path": "data/raw/vllm-0.10.1/vllm/model_executor/layers/fused_moe/fused_batched_moe.py",
-#           "first_character_index": 28416,
-#           "last_character_index": 28975
-#         }
-#       ],
-#       "difficulty": "synthetic",
-#       "is_valid": true
-#     },
+# 1 source de référence, retrouvée dans le top 5 = 1/1 = 1
+# 1 source de référence, pas retrouvée = 0/1 = 0
+# 2 sources de référence, 1 retrouvée = 1/2 = 0.5 Le score global est la
+# moyenne sur toutes les questions.
+# Si recall@5 = 84% cela signifique que 84% des questions ont leur source dans
+# les 5 premiers résultats.
 
-# EXEMPLE DE MON FICHIER
-# PRENDRE DANS RETRIEVED SOURCES LES K PREMIERS CHUNKS
+# meme fichier (file_path identique)
+# les plages de caractères se recoupent (debut1 <= fin2 et début2 <= fin1)
 
-# {
-#     "search_results": [
-#         {
-#             "question_id": "189c8b8a-e59c-4fca-92ad-c02df42cbe40",
-#             "question": "What activation formats does the fused batched MoE layer return in vLLM?",
-#             "retrieved_sources": [
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/docs/design/fused_moe_modular_kernel.md",
-#                     "first_character_index": 0,
-#                     "last_character_index": 1786
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/vllm/lora/models.py",
-#                     "first_character_index": 1888,
-#                     "last_character_index": 2340
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/vllm/model_executor/layers/quantization/compressed_tensors/compressed_tensors_moe.py",
-#                     "first_character_index": 16237,
-#                     "last_character_index": 17544
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/docs/getting_started/installation/cpu.md",
-#                     "first_character_index": 9439,
-#                     "last_character_index": 9927
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/vllm/model_executor/layers/quantization/quark/quark_moe.py",
-#                     "first_character_index": 11876,
-#                     "last_character_index": 13684
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/tests/kernels/moe/modular_kernel_tools/cli_args.py",
-#                     "first_character_index": 2445,
-#                     "last_character_index": 3770
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/vllm/model_executor/layers/quantization/gguf.py",
-#                     "first_character_index": 19972,
-#                     "last_character_index": 21198
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/vllm/model_executor/layers/quantization/modelopt.py",
-#                     "first_character_index": 62096,
-#                     "last_character_index": 63054
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/vllm/model_executor/layers/fused_moe/fused_batched_moe.py",
-#                     "first_character_index": 0,
-#                     "last_character_index": 877
-#                 },
-#                 {
-#                     "file_path": "data/raw/vllm-0.10.1/vllm/model_executor/layers/quantization/utils/flashinfer_fp4_moe.py",
-#                     "first_character_index": 1836,
-#                     "last_character_index": 3230
-#                 }
-#             ],
-#             "answer": "vLLM CPU supports quantizations such as AWQ, GPTQ, and compressed-tensor INT8 W8A8."
-#         },
+# probleme si ya plusieurs références
+# si le nb est de un ya un appel de recall donc ca va
+# si ya plusieurs refs ca veut dire qu'on doit attendre plusieurs appels pour
+# faire le calcul
+# ou sinon je return quelque chose dans ma fonction recall que je receptionne
+# dans une liste crée pour chaque source
+
+# donc la je mets les chunks qui ont le meme file_path que la source dans une
+# lst que je renvoie
+# donc la fonction s'appelle pas recall mais plutot find_chunks
+
+# une fois qu'on a la liste de chunks, ou les listes si plusieurs ref

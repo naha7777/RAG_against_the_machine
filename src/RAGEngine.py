@@ -5,6 +5,7 @@ from src.models import (MinimalSearchResults, StudentSearchResults,
                         MinimalAnswer, MinimalSource,
                         StudentSearchResultsAndAnswer)
 from src.utils.check import check_path, check_int, check_json, check_query
+from src.evaluating.evaluate import evaluator
 from pathlib import Path
 from typing import Any
 from tqdm import tqdm
@@ -19,6 +20,9 @@ save_directory = "data/output/search_results/UnansweredQuestions"
 student_search_results_path = "data/output/search_results/"\
                               "UnansweredQuestions/dataset_docs_public.json"
 save_answer_dir = "data/output/search_results_and_answer/UnansweredQuestions"
+my_file = "data/output/search_results/UnansweredQuestions/"\
+          "dataset_docs_public.json"
+ref_file = "data/datasets/public/AnsweredQuestions/dataset_docs_public.json"
 
 
 class RAGEngine:
@@ -199,10 +203,12 @@ class RAGEngine:
                   f"{save_directory}/{file_name}")
 
     def evaluate(self,
-                 student_search_results_path: str = "",
-                 dataset_path: str = "") -> None:
+                 student_search_results_path: str = my_file,
+                 dataset_path: str = ref_file) -> None:
         check_path(student_search_results_path)
         check_path(dataset_path)
+
+        evaluator(student_search_results_path, dataset_path)
 
 
 def load_bm() -> Any:
