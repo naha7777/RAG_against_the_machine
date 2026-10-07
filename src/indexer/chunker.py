@@ -1,12 +1,9 @@
 from pathlib import Path
 import os
 import zipfile
-from chonkie import CodeChunker, RecursiveChunker, OverlapRefinery
+from chonkie import CodeChunker, RecursiveChunker
 from src.utils.display import print_success
 from typing import Any
-
-
-overlap = 0.05
 
 
 class Chunker:
@@ -57,7 +54,7 @@ class Chunker:
 
     def chunk_docs_file(self, max_chunk_size: int,
                         file: str) -> list[dict[Any, Any]] | None:
-        file_content = check_and_read_file(file)
+        content = check_and_read_file(file)
 
         if file.endswith(".md"):
             chunker = RecursiveChunker.from_recipe("markdown", lang="en",
@@ -65,10 +62,10 @@ class Chunker:
         else:
             chunker = RecursiveChunker(chunk_size=max_chunk_size)
 
-        chunks_obj = list(chunker.chunk(file_content))
+        chunks_obj = list(chunker.chunk(content))
         chunks = set_chunks_info(chunks_obj, file)
         for c in chunks:
-            real = file_content[c["first_character_index"]:c["last_character_index"]]
+            real = content[c["first_character_index"]:c["last_character_index"]]
             if real != c["text"]:
                 raise ValueError(f"bad positions in {c['file_path']}")
         return chunks

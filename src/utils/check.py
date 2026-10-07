@@ -19,7 +19,7 @@ def check_int(name: str, number: int) -> None:
         raise ValueError(f"{name} can't be more than 8000, this is too much")
 
 
-def check_query(query:str) -> None:
+def check_query(query: str) -> None:
     if isinstance(query, (bool, int, float, list, dict)):
         raise TypeError("query must be a string")
     if not query or query == 'query':
@@ -38,8 +38,8 @@ def check_json(path: str) -> str:
     return file_name
 
 
-def check_path(path: str) -> None:
-    path = Path(path)
+def check_path(file_path: str) -> None:
+    path = Path(file_path)
     if path.exists() is False:
         raise ValueError("can't find the file")
     if path.is_file() is False:

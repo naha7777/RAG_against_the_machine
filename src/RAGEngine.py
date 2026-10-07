@@ -148,9 +148,9 @@ class RAGEngine:
             raise ValueError("You have to index before")
         if not os.access(check_file, os.R_OK):
             raise ValueError("can't read data/processed/chunks.json,"
-                            "please change permissions")
+                             "please change permissions")
         with open("././data/processed/chunks.json", "r",
-                encoding="utf-8") as f:
+                  encoding="utf-8") as f:
             chunks_infos = f.read()
         if not chunks_infos:
             raise ValueError("error finding informations about chunks")
@@ -208,7 +208,7 @@ class RAGEngine:
 def load_bm() -> Any:
     try:
         bm25 = bm25s.BM25.load("././data/processed/bm25_index",
-                                load_corpus=True)
+                               load_corpus=True)
     except FileNotFoundError:
         raise FileNotFoundError("can't find index, please create it with "
                                 "'uv run python -m src index'")
@@ -216,9 +216,9 @@ def load_bm() -> Any:
 
 
 def create_json(
-    save_directory: str,
-    file_name: str,
-    content: StudentSearchResultsAndAnswer | StudentSearchResults) -> None:
+        save_directory: str,
+        file_name: str,
+        content: StudentSearchResultsAndAnswer | StudentSearchResults) -> None:
     json_content = content.model_dump_json(indent=4)
     path = Path(save_directory)
     if path.exists() is False:
