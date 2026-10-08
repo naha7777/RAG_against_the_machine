@@ -8,6 +8,11 @@ from src.utils.display import print_success
 
 
 def indexer(max_chunk_size: int) -> None:
+    """Create the chunker and extract database from the .zip. Chunk all files
+    dependings on there types : one function for python files, another function
+    for markdowns and .txt. Create a stemmer and tokenize all chunks with bm25
+    to create the index. Stock chunks informations on a json too.
+    Print a success message when it's over."""
     # create chunker and stock files paths
     chunker = Chunker()
     try:

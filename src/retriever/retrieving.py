@@ -9,6 +9,9 @@ from src.models import MinimalSource
 
 def retriever(retriever: Any, query: str, k: int,
               verbose: bool) -> list[MinimalSource] | list[Any]:
+    """Create a stemmer, tokenize a query and call the retriever to find
+    the bests chunks. Read chunks.json to find informations about bests chunks.
+    Then stock it on MinimalSource model."""
 
     stemmer = Stemmer.Stemmer('english')
 

@@ -5,6 +5,7 @@ import torch
 
 class GetAnswer:
     def __init__(self) -> None:
+        """Create the tokenizer and the model, use cuda if it's possible"""
         self.tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")
         device = "cuda" if torch.cuda.is_available() else "cpu"
         dtype = torch.float16 if device == "cuda" else torch.float32
@@ -15,6 +16,7 @@ class GetAnswer:
 
     def augmente(self, query: str, chunks: list[Any],
                  context_limite: int) -> Any:
+        """Create the prompt, tokenize it and return it."""
 
         tokens_used = 0
         parts = []
@@ -51,6 +53,8 @@ class GetAnswer:
         return prompt_token
 
     def generate(self, tokens: Any) -> Any:
+        """Generate an answer from the prompt returned by augmente method.
+        Return the final answer decoded."""
         result = self.model.generate(**tokens, max_new_tokens=150)
         answer = self.tokenizer.decode(
             result[0][tokens["input_ids"].shape[1]:],

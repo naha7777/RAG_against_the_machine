@@ -28,12 +28,16 @@ ref_file = "data/datasets/public/AnsweredQuestions/dataset_docs_public.json"
 class RAGEngine:
 
     def index(self, max_chunk_size: int = 2000) -> None:
-        # check if max_chunk_size is valide and call indexer function
+        """ check if max_chunk_size is valide and call indexer function """
         check_int("max_chunk_size", max_chunk_size)
         indexer(max_chunk_size)
 
     def search(self, query: str = "", k: int = 10,
                verbose: bool = True) -> None:
+        """
+        check if query and k are valide, load bm25, call retriever function
+        stock all informations on MinimalSearchResults model, and print a json
+        """
         # check if query and k are valide
         check_query(query)
         check_int("k", k)
@@ -58,6 +62,10 @@ class RAGEngine:
                        k: int = 10,
                        save_directory: str = save_directory,
                        verbose: bool = True) -> None:
+        """check if dataset_path, k and save_directory are valide, read the
+        dataset document, load bm25 and call retriever function for each
+        question on dataset, stock everything on MinimalSearchResults model.
+        Find the filename to create the final json and create it"""
         # check if path, k, and directory are valide
         check_path(dataset_path)
         check_int("k", k)
@@ -96,6 +104,11 @@ class RAGEngine:
 
     def answer(self, query: str = "", k: int = 10,
                context_limite: int = 3000) -> None:
+        """check if query, k and context limite are valide, load bm25 and call
+        retriever function. Create and tokenize a prompt with GetAnswer class
+        and augmente, sent it to Qwen3 with generate method and collect the
+        LLM answer. Stock all informations about chunks, question and answer.
+        Print a json."""
         # check if query, k and context limite are valide
         check_query(query)
         check_int("k", k)
@@ -133,7 +146,13 @@ class RAGEngine:
             save_directory: str = save_answer_dir,
             context_limite: int = 3000,
             k: int = 10) -> None:
-
+        """check student_search_results_path, k, context_limite and
+        save_directory. Read the document and chunks.json. FInd the file name
+        to create the final json. Find best chunks for each question and
+        give it to the LLM with GetAnswer() class. Receive answers. Stock
+        all informations on MinimalSource model and MinimalAnswer model,
+        then also on StudentSearchResultsAndAnswer model to create the
+        json file. Print a message to tell user that the json is created"""
         # check if path, k, context_limite and directory are valide
         check_path(student_search_results_path)
         check_int("context", context_limite)
@@ -205,6 +224,8 @@ class RAGEngine:
     def evaluate(self,
                  student_search_results_path: str = my_file,
                  dataset_path: str = ref_file) -> None:
+        """check student_search_results_path and dataset_path and call
+        evaluator function"""
         check_path(student_search_results_path)
         check_path(dataset_path)
 
@@ -212,6 +233,7 @@ class RAGEngine:
 
 
 def load_bm() -> Any:
+    """load bm25"""
     try:
         bm25 = bm25s.BM25.load("././data/processed/bm25_index",
                                load_corpus=True)
@@ -225,6 +247,8 @@ def create_json(
         save_directory: str,
         file_name: str,
         content: StudentSearchResultsAndAnswer | StudentSearchResults) -> None:
+    """create a json with the name on file_name and in the directory of
+    save_directory"""
     json_content = content.model_dump_json(indent=4)
     path = Path(save_directory)
     if path.exists() is False:
@@ -235,6 +259,7 @@ def create_json(
 
 
 def find_chunks_infos(chunks_infos: Any, data: Any) -> list[Any]:
+    """save informations about a chunk on a list"""
     save_chunk = []
     for sources in data["retrieved_sources"]:
         for c in chunks_infos:

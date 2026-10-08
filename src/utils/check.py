@@ -3,6 +3,7 @@ import os
 
 
 def check_int(name: str, number: int) -> None:
+    """check if numbers are valid integers"""
     if isinstance(number, bool):
         raise TypeError(f"{name} must be an integer")
     try:
@@ -20,6 +21,7 @@ def check_int(name: str, number: int) -> None:
 
 
 def check_query(query: str) -> None:
+    """check if query is a valid string"""
     if isinstance(query, (bool, int, float, list, dict)):
         raise TypeError("query must be a string")
     if not query or query == 'query':
@@ -27,6 +29,7 @@ def check_query(query: str) -> None:
 
 
 def check_json(path: str) -> str:
+    """check if the document is a valid json"""
     if "/" in path:
         cut_path = path.split("/")
         file_name = cut_path[len(cut_path) - 1]
@@ -39,6 +42,7 @@ def check_json(path: str) -> str:
 
 
 def check_path(file_path: str) -> None:
+    """check if file_path is a valid path"""
     path = Path(file_path)
     if path.exists() is False:
         raise ValueError("can't find the file")

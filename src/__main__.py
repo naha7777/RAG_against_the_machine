@@ -12,6 +12,7 @@ except ModuleNotFoundError:
 
 
 def main() -> int:
+    """main function introducing CLI by calling RAGEngine class"""
     try:
         fire.Fire(RAGEngine)
         return 0

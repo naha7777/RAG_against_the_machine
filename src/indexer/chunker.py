@@ -9,7 +9,8 @@ from typing import Any
 class Chunker:
 
     def check_zip(self) -> None:
-        # check path
+        """check if the path and directory exist, same for the file, check also
+        permissions."""
         path_to_folder = "././data/raw/"
         path = Path(path_to_folder)
         if path.exists() is False:
@@ -17,7 +18,6 @@ class Chunker:
         if path.is_dir() is False:
             raise ValueError("this is not a directory")
 
-        # check file
         file = "././data/raw/vllm-0.10.1.zip"
         file_path = Path(file)
         if file_path.exists() is False:
@@ -28,7 +28,9 @@ class Chunker:
             raise ValueError("can't read the file, please change permissions")
 
     def extract_zip(self) -> list[str] | None:
-        # extract zip and return a list with all files paths
+        """
+        Extract files from the .zip and return a list with all files paths
+        """
         file_list = []
         try:
             with zipfile.ZipFile("././data/raw/vllm-0.10.1.zip", "r") as z:
@@ -42,6 +44,7 @@ class Chunker:
 
     def chunk_code_file(self, max_chunk_size: int,
                         file: str) -> list[dict[Any, Any]] | None:
+        """chunk only python files and return informations about chunks"""
         file_content = check_and_read_file(file)
 
         chunker = CodeChunker(language="python",
@@ -51,6 +54,10 @@ class Chunker:
 
     def chunk_docs_file(self, max_chunk_size: int,
                         file: str) -> list[dict[Any, Any]] | None:
+        """
+        chunk markdown and .txt files and return informations about chunks,
+        check if first index and last index are correct
+        """
         content = check_and_read_file(file)
 
         if file.endswith(".md"):
@@ -70,6 +77,9 @@ class Chunker:
 
 
 def check_and_read_file(file: str) -> str:
+    """
+    check if a file exist and permissions, read it and return it on a string
+    """
     check_file = Path(file)
     if check_file.exists() is False:
         raise ValueError(f"can't find {file}")
@@ -87,6 +97,8 @@ def check_and_read_file(file: str) -> str:
 
 def set_chunks_info(chunks_obj: list[Any],
                     file: str) -> list[dict[Any, Any]]:
+    """put all informations (text, file path, first character index and
+    last character index) of all chunks on a list"""
     chunks = []
     for c in chunks_obj:
         chunk = {}
