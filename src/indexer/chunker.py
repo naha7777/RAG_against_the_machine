@@ -26,9 +26,6 @@ class Chunker:
             raise ValueError("this is not a file")
         if not os.access(file_path, os.R_OK):
             raise ValueError("can't read the file, please change permissions")
-        if not os.access(file_path, os.X_OK):
-            raise ValueError("can't execute the file, "
-                             "please change permissions")
 
     def extract_zip(self) -> list[str] | None:
         # extract zip and return a list with all files paths
