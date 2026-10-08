@@ -4,7 +4,7 @@
 
 PYTHON			=	python3
 PDB 			=	python3 -m pdb
-UV_PYTHON		=	uv run python
+UV_PYTHON		=	uv run python -m
 FLAKE8			=	uv run flake8
 MYPY 			=	uv run mypy
 MYPY_FLAGS		=	--warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs

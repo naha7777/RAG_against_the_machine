@@ -65,7 +65,8 @@ class Chunker:
         chunks_obj = list(chunker.chunk(content))
         chunks = set_chunks_info(chunks_obj, file)
         for c in chunks:
-            real = content[c["first_character_index"]:c["last_character_index"]]
+            real = (
+                content[c["first_character_index"]:c["last_character_index"]])
             if real != c["text"]:
                 raise ValueError(f"bad positions in {c['file_path']}")
         return chunks

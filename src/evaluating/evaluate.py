@@ -44,7 +44,7 @@ def recall(retrieved: list[dict[str, Any]],
 
 
 def matches(retrieved: dict[str, Any], ref: dict[str, Any],
-             threshold: float = 0.05) -> bool:
+            threshold: float = 0.05) -> bool:
     # return false if there is differents filepaths
     if retrieved["file_path"] != ref["file_path"]:
         return False
@@ -64,5 +64,3 @@ def iou(retrieved: dict[str, Any], ref: dict[str, Any]) -> float:
     inter = max(0, min(my_last, ref_last)) - max(my_first, ref_first)
     union = (my_last - my_first) + (ref_last - ref_first) - inter
     return inter / union if union > 0 else 0.0
-
-
