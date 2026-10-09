@@ -1,3 +1,10 @@
+"""Command-line commands of the RAG system, exposed through Fire.
+
+The RAGEngine class gathers the sub-commands of ``python -m src``: index,
+search, search_dataset, answer, answer_dataset and evaluate.
+"""
+
+
 from src.indexer.index import indexer
 from src.retriever.retrieving import retriever
 from src.answering.answer import GetAnswer
@@ -26,17 +33,36 @@ ref_file = "data/datasets/public/AnsweredQuestions/dataset_docs_public.json"
 
 
 class RAGEngine:
+    """Expose the commands of the RAG pipeline to Fire.
+
+    Each public method is a sub-command. Every command validates its
+    arguments and raises a clear error before doing any work.
+    """
 
     def index(self, max_chunk_size: int = 2000) -> None:
-        """ check if max_chunk_size is valide and call indexer function """
+        """Chunk the knowledge base and build the BM25 index.
+
+        Validate max_chunk_size, then call the indexer, which writes the
+        index and chunks.json in data/processed/.
+
+        Args:
+            max_chunk_size: Maximum size of a chunk, in characters.
+        """
+        # check if max_chunk_size is valide and call indexer function
         check_int("max_chunk_size", max_chunk_size)
         indexer(max_chunk_size)
 
     def search(self, query: str = "", k: int = 10,
                verbose: bool = True) -> None:
-        """
-        check if query and k are valide, load bm25, call retriever function
-        stock all informations on MinimalSearchResults model, and print a json
+        """Retrieve the k best sources for one question.
+
+        Validate the arguments, load the BM25 index, call the retriever and
+        store the result in a MinimalSearchResults model.
+
+        Args:
+            query: Question to search for.
+            k: Number of sources to retrieve.
+            verbose: If True, print the result as a JSON.
         """
         # check if query and k are valide
         check_query(query)
@@ -62,10 +88,19 @@ class RAGEngine:
                        k: int = 10,
                        save_directory: str = save_directory,
                        verbose: bool = True) -> None:
-        """check if dataset_path, k and save_directory are valide, read the
-        dataset document, load bm25 and call retriever function for each
-        question on dataset, stock everything on MinimalSearchResults model.
-        Find the filename to create the final json and create it"""
+        """Retrieve the k best sources for every question of a dataset.
+
+        Validate the arguments, read the dataset, load the BM25 index once
+        and search each question. The results are stored in a
+        StudentSearchResults model and written as a JSON file named after
+        the dataset.
+
+        Args:
+            dataset_path: Path to the JSON file containing the questions.
+            k: Number of sources to retrieve per question.
+            save_directory: Directory where the JSON file is written.
+            verbose: If True, write the file and print a confirmation.
+        """
         # check if path, k, and directory are valide
         check_path(dataset_path)
         check_int("k", k)
@@ -104,11 +139,17 @@ class RAGEngine:
 
     def answer(self, query: str = "", k: int = 10,
                context_limite: int = 3000) -> None:
-        """check if query, k and context limite are valide, load bm25 and call
-        retriever function. Create and tokenize a prompt with GetAnswer class
-        and augmente, sent it to Qwen3 with generate method and collect the
-        LLM answer. Stock all informations about chunks, question and answer.
-        Print a json."""
+        """Answer one question using the retrieved context.
+
+        Retrieve the k best chunks, build a prompt that respects the token
+        budget, generate the answer with Qwen3 and print a JSON containing
+        the question, the sources and the answer.
+
+        Args:
+            query: Question to answer.
+            k: Number of chunks to retrieve.
+            context_limite: Maximum number of tokens of context.
+        """
         # check if query, k and context limite are valide
         check_query(query)
         check_int("k", k)
@@ -146,13 +187,19 @@ class RAGEngine:
             save_directory: str = save_answer_dir,
             context_limite: int = 3000,
             k: int = 10) -> None:
-        """check student_search_results_path, k, context_limite and
-        save_directory. Read the document and chunks.json. FInd the file name
-        to create the final json. Find best chunks for each question and
-        give it to the LLM with GetAnswer() class. Receive answers. Stock
-        all informations on MinimalSource model and MinimalAnswer model,
-        then also on StudentSearchResultsAndAnswer model to create the
-        json file. Print a message to tell user that the json is created"""
+        """Generate an answer for every question of a search-results file.
+
+        Read the search results and chunks.json, rebuild the chunks of each
+        question, generate the answers with Qwen3 and write a
+        StudentSearchResultsAndAnswer JSON. The file is saved every 10
+        questions, so an interruption does not lose all the work.
+
+        Args:
+            student_search_results_path: JSON produced by search_dataset.
+            save_directory: Directory where the JSON file is written.
+            context_limite: Maximum number of tokens of context.
+            k: Number of sources per question, stored in the output.
+        """
         # check if path, k, context_limite and directory are valide
         check_path(student_search_results_path)
         check_int("context", context_limite)
@@ -224,8 +271,14 @@ class RAGEngine:
     def evaluate(self,
                  student_search_results_path: str = my_file,
                  dataset_path: str = ref_file) -> None:
-        """check student_search_results_path and dataset_path and call
-        evaluator function"""
+        """Report the Recall@k of search results against a reference.
+
+        Validate both paths and call the evaluator.
+
+        Args:
+            student_search_results_path: JSON produced by search_dataset.
+            dataset_path: Reference dataset containing the correct sources.
+        """
         check_path(student_search_results_path)
         check_path(dataset_path)
 
@@ -233,7 +286,14 @@ class RAGEngine:
 
 
 def load_bm() -> Any:
-    """load bm25"""
+    """Load the BM25 index saved in data/processed/bm25_index.
+
+    Returns:
+        The loaded BM25 retriever.
+
+    Raises:
+        FileNotFoundError: If the index has not been created yet.
+    """
     try:
         bm25 = bm25s.BM25.load("././data/processed/bm25_index",
                                load_corpus=True)
@@ -247,8 +307,15 @@ def create_json(
         save_directory: str,
         file_name: str,
         content: StudentSearchResultsAndAnswer | StudentSearchResults) -> None:
-    """create a json with the name on file_name and in the directory of
-    save_directory"""
+    """Write a Pydantic model as an indented JSON file.
+
+    Create the directory if it does not exist.
+
+    Args:
+        save_directory: Directory where the file is written.
+        file_name: Name of the JSON file.
+        content: Model to serialize.
+    """
     json_content = content.model_dump_json(indent=4)
     path = Path(save_directory)
     if path.exists() is False:
@@ -259,7 +326,18 @@ def create_json(
 
 
 def find_chunks_infos(chunks_infos: Any, data: Any) -> list[Any]:
-    """save informations about a chunk on a list"""
+    """Find the full chunks matching the sources of one question.
+
+    A chunk matches a source when the file path and both character indexes
+    are equal.
+
+    Args:
+        chunks_infos: All the chunks loaded from chunks.json.
+        data: Search result of one question, with its retrieved_sources.
+
+    Returns:
+        The matching chunks (text, file path and positions).
+    """
     save_chunk = []
     for sources in data["retrieved_sources"]:
         for c in chunks_infos:
